@@ -1,0 +1,5 @@
+file(GLOB TEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
+add_executable(unit_tests ${TEST_SOURCES})
+target_link_libraries(unit_tests PRIVATE GTest::gtest_main GTest::gmock ccpp_lib)
+include(GoogleTest)
+gtest_discover_tests(unit_tests)
