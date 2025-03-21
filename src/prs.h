@@ -68,6 +68,7 @@ private:
   std::vector<Node *> result;
 public:
   Parser(std::string &code): tokenizer(code) { }
+  Parser(std::string code): tokenizer(code) { }
   std::vector<Node *> parse();
 };
 }; // namespace AST
