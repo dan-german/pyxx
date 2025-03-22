@@ -4,7 +4,6 @@
 #include <unordered_map>
 #include <string_view>
 #include <print>
-#include <variant>
 
 #define whitespace ' '
 
@@ -17,34 +16,34 @@ enum class TokenType: char {
   COUNT
 };
 
-constexpr std::string_view getTokenTypeString(TokenType tp) {
+constexpr std::string getTokenTypeString(TokenType tp) {
   switch (tp) {
   case TokenType::id: return "ID";
   case TokenType::op: return "OP";
   case TokenType::type: return "TYPE";
   case TokenType::int_const: return "CONST (INT)";
-  case TokenType::punct: return "ID";
+  case TokenType::punct: return "PUNCT";
   default: return "NOT IMPLEMENTED";
   }
 }
 
-using Token = std::pair<TokenType, std::variant<char, std::string, int>>;
+using Token = std::pair<TokenType, std::string>;
 
-void print_tok(Token &t);
+void print_tok(const Token &t);
 
-class Tokenizer {
+class Lex {
 private:
   std::optional<Token> currToken;
   std::optional<Token> nextToken;
-  std::string &input;
+  const std::string &input;
   size_t pos = 0;
   std::optional<Token> getNextToken();
   Token parseId();
   Token parseIntConst();
 public:
   inline bool eatable() { return pos < input.size() && input[pos] != whitespace; }
-  Tokenizer(std::string &input);
-  std::optional<Token> curr();
-  std::optional<Token> eat();
-  std::optional<Token> peek();
+  Lex(const std::string &input);
+  std::optional<Token> eat(std::optional<TokenType> expected_type = { }, std::optional<std::string> expected_value = { });
+  inline const std::optional<Token> &curr() { return currToken; }
+  inline const std::optional<Token> &peek() { return nextToken; }
 };

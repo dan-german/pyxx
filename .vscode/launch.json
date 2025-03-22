@@ -7,8 +7,17 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Build & debug",
+            "name": "Debug tests",
             "program": "${workspaceFolder}/build/test/unit_tests",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "preLaunchTask": "build"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug main",
+            "program": "${workspaceFolder}/build/pyxx",
             "args": [],
             "cwd": "${workspaceFolder}",
             "preLaunchTask": "build"

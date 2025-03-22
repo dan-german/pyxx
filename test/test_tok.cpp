@@ -1,41 +1,50 @@
 #include <gtest/gtest.h>
-#include "tok.h"
+#include "lex.h"
 #include <vector>
+#include <utility>
+
+#define EXPECT_TOKEN(type,value) EXPECT_EQ(lex.peek(), Token(type,value));\
+  EXPECT_EQ(lex.eat(), Token(type,value));\
+  EXPECT_EQ(lex.curr(), Token(type,value));
 
 TEST(tok, CurrPeekAndEat) {
-  std::string code = "int a = 2;";
-  Tokenizer tokenizer(code);
-  EXPECT_EQ(tokenizer.curr(), std::optional<Token>());
-  EXPECT_EQ(tokenizer.peek(), Token(TokenType::type, "int"));
-  EXPECT_EQ(tokenizer.eat(), Token(TokenType::type, "int"));
-  EXPECT_EQ(tokenizer.eat(), Token(TokenType::id, "a"));
+  std::string code = "a=2*2\nb=80+60";
+  Lex lex(code);
+  EXPECT_EQ(lex.curr(), std::optional<Token>());
 
-  EXPECT_EQ(tokenizer.peek(), Token(TokenType::op, '='));
-  EXPECT_EQ(tokenizer.eat(), Token(TokenType::op, '='));
-  EXPECT_EQ(tokenizer.curr(), Token(TokenType::op, '='));
+  EXPECT_TOKEN(TokenType::id, std::string("a"));
+  EXPECT_TOKEN(TokenType::op, std::string("="));
+  EXPECT_TOKEN(TokenType::int_const, std::string("2"));
+  EXPECT_TOKEN(TokenType::op, std::string("*"));
+  EXPECT_TOKEN(TokenType::int_const, std::string("2"));
 
-  EXPECT_EQ(tokenizer.eat(), Token(TokenType::int_const, 2));
-  EXPECT_EQ(tokenizer.eat(), Token(TokenType::punct, ';'));
-  EXPECT_EQ(tokenizer.eat(), std::optional<Token>());
-  EXPECT_EQ(tokenizer.curr(), std::optional<Token>());
+  EXPECT_TOKEN(TokenType::punct, std::string("n"));
+
+  EXPECT_TOKEN(TokenType::id, std::string("b"));
+  EXPECT_TOKEN(TokenType::op, std::string("="));
+  EXPECT_TOKEN(TokenType::int_const, std::string("80"));
+  EXPECT_TOKEN(TokenType::op, std::string("+"));
+  EXPECT_TOKEN(TokenType::int_const, std::string("60"));
+
+  EXPECT_EQ(lex.peek(), std::optional<Token>());
+  EXPECT_EQ(lex.eat(), std::optional<Token>());
+  EXPECT_EQ(lex.curr(), std::optional<Token>());
 }
 
-TEST(tok, Arithmetic) { 
-  std::string code = "int a=1*2+3;";
-  std::vector<std::optional<Token>> tokens;
-  Tokenizer tokenizer(code);
-  while (tokenizer.peek()) tokens.push_back(tokenizer.eat());
-  
-  std::vector<std::optional<Token>> expected = { 
-    Token(TokenType::type, "int"),
-    Token(TokenType::id, "a"),
-    Token(TokenType::op, '='),
-    Token(TokenType::int_const, 1),
-    Token(TokenType::op, '*'),
-    Token(TokenType::int_const, 2),
-    Token(TokenType::op, '+'),
-    Token(TokenType::int_const, 3),
-    Token(TokenType::punct, ';')
-  };
-  EXPECT_EQ(expected, tokens);
-}
+// TEST(tok, Indentation) {
+//   std::string code = "";
+//   lex lex(code);
+//   EXPECT_EQ(lex.curr(), std::optional<Token>());
+
+//   EXPECT_TOKEN(TokenType::id, std::string("a"));
+//   EXPECT_TOKEN(TokenType::op, char('='));
+//   EXPECT_TOKEN(TokenType::int_const, 2);
+//   EXPECT_TOKEN(TokenType::punct, char('n'));
+//   EXPECT_TOKEN(TokenType::id, std::string("b"));
+//   EXPECT_TOKEN(TokenType::op, char('='));
+//   EXPECT_TOKEN(TokenType::int_const, 80);
+
+//   EXPECT_EQ(lex.peek(), std::optional<Token>());
+//   EXPECT_EQ(lex.eat(), std::optional<Token>());
+//   EXPECT_EQ(lex.curr(), std::optional<Token>());
+// }
