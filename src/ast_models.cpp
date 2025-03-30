@@ -1,6 +1,5 @@
-#include "ASTModels.h"
+#include "ast_models.h"
 #include <format>
-#include <ranges>
 using namespace std;
 
 namespace AST {
@@ -108,10 +107,3 @@ Call::operator string() const {
   return format("Call({})", id);
 }
 }
-
-// struct Call: public Node { 
-  // std::string id
-  // Call(std::string id);
-  // bool isEqual(const Node& other) const override;
-  // operator std::string() const override;
-// };

@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
-#include "Prs.h"
+#include "prs.h"
 #include <vector>
 #include <memory>
 using namespace std;

@@ -1,4 +1,4 @@
-#include "Lex.h"
+#include "lex.h"
 #include <algorithm>
 using namespace std;
 

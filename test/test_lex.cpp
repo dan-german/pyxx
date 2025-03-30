@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "Lex.h"
+#include "lex.h"
 #include <vector>
 #include <utility>
 using namespace std;

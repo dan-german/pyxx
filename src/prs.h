@@ -1,7 +1,7 @@
 #pragma once
-#include "Lex.h"
+#include "lex.h"
 #include <memory>
-#include "ASTModels.h"
+#include "ast_models.h"
 
 namespace AST {
 

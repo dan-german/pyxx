@@ -68,6 +68,7 @@
         "iterator": "cpp",
         "utility": "cpp",
         "__config": "cpp",
-        "ranges": "cpp"
+        "ranges": "cpp",
+        "shared_mutex": "cpp"
     }
 }
