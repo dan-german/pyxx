@@ -1,99 +1,31 @@
 #pragma once
-#include "lex.h"
+#include "Lex.h"
 #include <memory>
+#include "ASTModels.h"
 
 namespace AST {
 
-struct Node {
-  virtual bool isEqual(const Node &other) const = 0;
-  bool operator==(const Node &other) const { return isEqual(other); }
-  virtual ~Node() = default;
+const std::unordered_map<std::string, int> PREC = {
+  { "+", 0 }, { "-", 0 },
+  { "*", 1 }, { "/", 1 }
 };
 
-struct Arg: Node {
-
-};
-
-struct Fn: Node {
-  std::string id;
-  std::vector<Node *> args;
-  Fn(std::string id, std::vector<Node *> args = { }): id(id), args(args) { }
-  bool isEqual(const Node &other) const override {
-    const Fn *cast = dynamic_cast<const Fn *>(&other);
-    if (!cast) return false;
-    if (cast->id != id) return false;
-    for (size_t i = 0; i < args.size(); i++) {
-      if (*cast->args[i] != *args[i]) return false;
-    }
-    return true;
-  }
-};
-
-struct IntConst: public Node {
-  int value;
-  IntConst(int value): value(value) { }
-  bool isEqual(const Node &other) const override {
-    const IntConst *cast = dynamic_cast<const IntConst *>(&other);
-    return cast && cast->value == value;
-  }
-};
-
-struct UOp: public Node {
-  char op;
-  UOp(char op): op(op) { }
-
-  bool isEqual(const Node &other) const override {
-    const UOp *cast = dynamic_cast<const UOp *>(&other);
-    return cast && cast->op == op;
-  }
-};
-
-struct Var: public Node {
-  std::string id;
-  std::string op;
-  Node *value;
-
-  Var(std::string id, Node *value = 0): id(id), value(value) { }
-
-  bool isEqual(const Node &other) const override {
-    const Var *cast_other = dynamic_cast<const Var *>(&other);
-    return cast_other
-      && cast_other->id == id
-      && *cast_other->value == *value;
-  }
-};
-
-struct BOp: public Node {
-  Node *left;
-  std::string op;
-  Node *right;
-
-  BOp(Node *left, std::string op, Node *right = 0): left(left), op(op), right(right) { }
-
-  bool isEqual(const Node &other) const override {
-    const BOp *cast = dynamic_cast<const BOp *>(&other);
-    return cast
-      && *cast->left == *left
-      && cast->op == op
-      && *cast->right == *right;
-  }
-};
+const std::unordered_set<std::string> ASSIGN_OPS { "=", "+=", "-=" };
 
 class Parser {
 private:
-  int statement_index = 0;
-  std::vector<Node *> stack;
-  Lex lexer;
-  std::vector<Node *> result;
-  void handleInt(const Token &token);
-  void handleId(const Token &token);
-  void handlePunct(const Token &token);
-  void handleOp(const Token &token);
-  void stamp();
-  void skipSpace();
-  void parseBody();
+  Lex lex;
+  inline std::optional<Tok> eat(std::optional<TokType> expected_type = { }, std::optional<std::string> expected_value = { }) { return lex.eat(expected_type, expected_value); };
+  inline const std::optional<Tok>& peek() const { return lex.peek(); }
+  inline bool nextTakesPrec(std::string& op) const { return peek() && PREC.contains(peek()->value) && PREC.at(peek()->value) > PREC.at(op); }
+  inline bool nextAssociatesRight() const { return peek() && ASSIGN_OPS.contains(peek()->value); }
+  std::unique_ptr<Node> fn();
+  std::unique_ptr<Node> id();
+  std::unique_ptr<Node> uop();
+  std::unique_ptr<Node> call(std::string& id);
 public:
-  Parser(const std::string &code): lexer(code) { }
-  std::vector<Node *> parse();
+  std::unique_ptr<Node> expr(const std::unordered_set<std::string>& stopValues = {});
+  std::vector<std::unique_ptr<Node>> parse();
+  Parser(const std::string& code): lex(code) { }
 };
 }; // namespace AST

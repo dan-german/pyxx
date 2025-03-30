@@ -7,7 +7,7 @@
 
 #define whitespace ' '
 
-enum class TokenType: char {
+enum class TokType: char {
   id,
   op,
   type,
@@ -16,34 +16,29 @@ enum class TokenType: char {
   COUNT
 };
 
-constexpr std::string getTokenTypeString(TokenType tp) {
-  switch (tp) {
-  case TokenType::id: return "ID";
-  case TokenType::op: return "OP";
-  case TokenType::type: return "TYPE";
-  case TokenType::int_const: return "CONST (INT)";
-  case TokenType::punct: return "PUNCT";
-  default: return "NOT IMPLEMENTED";
-  }
-}
+std::string tokToStr(TokType tp);
 
-using Token = std::pair<TokenType, std::string>;
+struct Tok {
+  TokType type;
+  std::string value;
+  int space;
+  bool operator==(const Tok &other) const = default;
+  inline bool isNewline() const { return type == TokType::punct && value == "n"; }
+  Tok(TokType type, std::string value, int space): type(type), value(value), space(space) {}
+};
 
-void print_tok(const Token &t);
+void print_tok(const Tok &t, std::string msg = "");
 
 class Lex {
 private:
-  std::optional<Token> currToken;
-  std::optional<Token> nextToken;
+  std::optional<Tok> currToken;
+  std::optional<Tok> nextTok;
   const std::string &input;
   size_t pos = 0;
-  std::optional<Token> getNextToken();
-  Token parseId();
-  Token parseIntConst();
+  std::optional<Tok> getNextToken();
 public:
-  inline bool eatable() { return pos < input.size() && input[pos] != whitespace; }
   Lex(const std::string &input);
-  std::optional<Token> eat(std::optional<TokenType> expected_type = { }, std::optional<std::string> expected_value = { });
-  inline const std::optional<Token> &curr() { return currToken; }
-  inline const std::optional<Token> &peek() { return nextToken; }
+  std::optional<Tok> eat(std::optional<TokType> expected_type = { }, std::optional<std::string> expected_value = { });
+  inline const std::optional<Tok> &curr() const { return currToken; }
+  inline const std::optional<Tok> &peek() const { return nextTok; }
 };

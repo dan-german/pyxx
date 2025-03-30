@@ -1,105 +1,86 @@
-#include "prs.h"
+#include "Prs.h"
 #include <print>
 using namespace std;
 
-const unordered_map<string, int> PREC_MAP = {
-  { "+", 0 }, { "-", 0 },
-  { "*", 1 }, { "/", 1 }
-};
-const unordered_set<string> ASSIGN_OPS { "=", "+=", "-=" };
-
 namespace AST {
-void Parser::handleInt(const Token &token) {
-  if (stack.empty()) {
-    stack.push_back(new IntConst(stoi(token.second)));
-    return;
-  }
-  // if top of stack is a bop
-  if (auto bop = dynamic_cast<BOp *>(stack.back())) {
-    stack.pop_back();
-    bop->right = new IntConst(stoi(token.second));
-    stack.push_back(bop);
-  } else if (auto var = dynamic_cast<Var *>(stack.back())) {
-    stack.push_back(new IntConst(stoi(token.second)));
-    return;
-  }
-}
-
-void Parser::skipSpace() {
-  while (lexer.peek() && lexer.peek()->first == TokenType::punct && lexer.peek()->second == " ")
-    lexer.eat();
-}
-
-void Parser::handleId(const Token &token) {
-  Var *var = new Var(token.second);
-  stack.push_back(var);
-  skipSpace();
-  if (lexer.peek()->first == TokenType::op) {
-    var->op = lexer.eat()->second;
-  }
-}
-
-void Parser::handlePunct(const Token &token) {
-  if (token.second == "n") {
-    stamp();
-  } else if (token.second == "def") {
-    skipSpace();
-    string id = lexer.eat(TokenType::id)->second;
-    lexer.eat({},"(");
-    lexer.eat({},")");
-    lexer.eat({},":");
-    lexer.eat({},"n");
-    Fn* fn = new Fn(id, {});
-    stack.push_back(fn);
-  }
-}
-
-void Parser::parseBody() { 
-
-}
-
-void Parser::handleOp(const Token &token) {
-  if (auto ptr = dynamic_cast<IntConst *>(stack.back())) {
-    auto left = stack.back(); stack.pop_back(); // found var, replace value with bop
-    BOp *bop = new BOp(left, token.second);
-    if (auto var = dynamic_cast<Var *>(left)) {
-      var->value = bop;
+vector<unique_ptr<Node>> Parser::parse() {
+  vector<unique_ptr<Node>> result;
+  auto p = peek();
+  size_t indent = peek()->space;
+  while (peek() && peek()->space == indent) {
+    while (peek() && !peek()->isNewline()) {
+      if (peek()->value == "def") {
+        result.push_back(fn());
+      } else if (peek()->type == TokType::id) {
+        result.push_back(id());
+      }
     }
-    stack.push_back(bop);
-  } else if (auto bop = dynamic_cast<BOp *>(stack.back())) {
-    if (PREC_MAP.at(token.second) > PREC_MAP.at(bop->op)) {
-      bop->right = new BOp(bop->right, token.second);
-      stack.push_back(bop->right);
-    } else {
-      auto left = stack.back(); stack.pop_back();
-      stack.push_back(new BOp(left, token.second));
+    eat();
+    int new_indent = peek()->space;
+    if (indent != new_indent) return result;
+  }
+  return result;
+}
+
+unique_ptr<Node> Parser::uop() {
+  switch (peek()->type) {
+  case TokType::int_const: return make_unique<IntConst>(stoi(eat()->value));
+  case TokType::punct: {
+    eat({ }, "(");
+    auto e = expr({")"});
+    eat({ }, ")");
+    return e;
+  }
+  case TokType::id: {
+    string id = eat()->value;
+    if (peek() && peek()->value == "(") {
+      eat(TokType::punct, "(");
+      // TODO: args
+      eat(TokType::punct, ")");
+      return make_unique<Call>(id);
     }
+    return make_unique<Name>(id);
+  }
+  default: break;
   }
 }
 
-void Parser::stamp() {
-  if (stack.size() > 1) {
-    if (auto var = dynamic_cast<Var *>(stack[statement_index++])) {
-      var->value = stack.back(); stack.pop_back();
+unique_ptr<Node> Parser::expr(const unordered_set<string>& stopValues) {
+  auto left = uop();
+  while (peek() and not peek()->isNewline() and not stopValues.contains(peek()->value)) {
+    string op = eat(TokType::op)->value;
+    auto right = uop();
+    if (peek() && !peek()->isNewline() && (nextTakesPrec(op) || nextAssociatesRight())) {
+      right = make_unique<BOp>(std::move(right), eat()->value, std::move(expr()));
     }
+    left = make_unique<BOp>(std::move(left), op, std::move(right));
   }
+  return left;
 }
 
-vector<Node *> Parser::parse() {
-  while (lexer.peek()) {
-    const Token token = lexer.eat().value();
-    print_tok(token);
-    switch (token.first) {
-    case TokenType::id: handleId(token); break;
-    case TokenType::op: handleOp(token); break;
-    case TokenType::type: break;
-    case TokenType::punct: handlePunct(token); break;
-    case TokenType::int_const: handleInt(token); break;
-    default: break;
-    }
-  }
+unique_ptr<Node> Parser::call(string& id) {
+  eat({},"(");
+  eat({},")");
+  return make_unique<Call>(id);
+}
 
-  stamp();
-  return stack;
+unique_ptr<Node> Parser::id() {
+  string id = eat()->value;
+  if (peek()->value == "(") {
+    return call(id);
+  } 
+  return make_unique<Var>(id, eat()->value, std::move(expr()));
+}
+
+unique_ptr<Node> Parser::fn() {
+  auto x = eat();
+  string id = eat()->value;
+  eat(TokType::punct, "(");
+  // TODO: args
+  eat(TokType::punct, ")");
+  eat(TokType::punct, ":");
+  auto last = eat();
+  auto stmts = parse();
+  return make_unique<Fn>(id, vector<unique_ptr<Node>>(), std::move(stmts));
 }
 }; // namespace AST

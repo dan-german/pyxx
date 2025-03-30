@@ -63,6 +63,11 @@
         "unordered_set": "cpp",
         "variant": "cpp",
         "vector": "cpp",
-        "algorithm": "cpp"
+        "algorithm": "cpp",
+        "type_traits": "cpp",
+        "iterator": "cpp",
+        "utility": "cpp",
+        "__config": "cpp",
+        "ranges": "cpp"
     }
 }

@@ -1,64 +1,75 @@
-#include "lex.h"
+#include "Lex.h"
 #include <algorithm>
-
 using namespace std;
 
 const unordered_set<string> PUNCT = { " ", ";", "\n", "def", "(", ")" };
-const unordered_set<string> OPS = { "+", "-", "*", "/", "=" };
+const unordered_set<string> OPS = { "+", "-", "*", "/", "=", "+=", "-=", "*=", "/=" };
 
-optional<Token> Lex::getNextToken() {
+Lex::Lex(const string &input): input(input) {
+  nextTok = getNextToken();
+}
+
+optional<Tok> Lex::getNextToken() {
   if (pos == input.size())
     return { };
 
   while (pos < input.size()) {
-    if (isalpha(input[pos])) {
-      return parseId();
-    } else if (isdigit(input[pos])) {
-      return parseIntConst();
-    } else {
-      char c = input[pos++];
-      TokenType type = OPS.contains(string(1, c)) ? TokenType::op : TokenType::punct;
-      string value = c == '\n' ? "n" : string(1, c);
-      return Token { type, value };
+    int space = 0;
+    while (input[pos] == ' ') {
+      pos++;
+      space++;
     }
-    return { };
+    string value { };
+    TokType type;
+    if (isalpha(input[pos])) {
+      while (isalnum(input[pos]))
+        value += input[pos++];
+      type = PUNCT.contains(value) ? TokType::punct : TokType::id;
+    } else if (isdigit(input[pos])) {
+      while (pos < input.size() && isdigit(input[pos]))
+        value += input[pos++];
+      type = TokType::int_const;
+    } else {
+      if (pos + 2 < input.size() && OPS.contains(input.substr(pos, 2))) {
+        value = input.substr(pos, 2);
+        pos += 2;
+      } else {
+        value = string(1, input[pos++]);
+      }
+      type = OPS.contains(value) ? TokType::op : TokType::punct;
+      value = value == "\n" ? "n" : value;
+    }
+    return Tok(type, value, space);
   }
+  return { };
 }
 
-Token Lex::parseIntConst() {
-  string value { };
-  while (pos < input.size() && isdigit(input[pos]))
-    value += input[pos++];
-  return { TokenType::int_const, value };
-}
-
-Token Lex::parseId() {
-  string value { };
-  while (pos < input.size() && isalnum(input[pos]))
-    value += input[pos++];
-  if (PUNCT.contains(value)) return { TokenType::punct, value };
-  return { TokenType::id, value };
-}
-
-Lex::Lex(const string &input): input(input) {
-  nextToken = getNextToken();
-}
-
-optional<Token> Lex::eat(optional<TokenType> expectedType, optional<string> expectedValue) {
-  currToken = nextToken;
-  if (expectedType && currToken->first != expectedType) {
-    std::print("Expected token of type: {}, got {}\n", getTokenTypeString(*expectedType), getTokenTypeString(currToken->first));
-    throw 1;
+optional<Tok> Lex::eat(optional<TokType> expectedType, optional<string> expectedValue) {
+  currToken = nextTok;
+  if (!currToken) return { };
+  if (expectedType && currToken->type != *expectedType) {
+    throw runtime_error("Expected token of type: " + tokToStr(*expectedType) + ", got " + tokToStr(currToken->type));
   }
-  if (expectedValue && currToken->second != expectedValue) {
-    std::print("Expected token of value: {}, got {}\n", *expectedValue, currToken->second);
-    throw 1;
+  if (expectedValue && currToken->value != *expectedValue) {
+    throw runtime_error("Expected token of value: " + *expectedValue + ", got " + currToken->value);
   }
-  nextToken = getNextToken();
+  nextTok = getNextToken();
+  print_tok(*currToken, "eating: ");
   return currToken;
 }
 
-void print_tok(const Token &t) {
+void print_tok(const Tok &t, string msg) {
   constexpr int PADDING = 15;
-  print("{:<{}} {}\n", getTokenTypeString(t.first), PADDING, t.second);
+  print("{}{:<{}} {} {}\n", msg, tokToStr(t.type), PADDING, t.value, t.space);
+}
+
+std::string tokToStr(TokType tp) {
+  switch (tp) {
+  case TokType::id: return "ID";
+  case TokType::op: return "OP";
+  case TokType::type: return "TYPE";
+  case TokType::int_const: return "CONST (INT)";
+  case TokType::punct: return "PUNCT";
+  default: return "NOT IMPLEMENTED";
+  }
 }
