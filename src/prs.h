@@ -25,7 +25,7 @@ private:
   std::unique_ptr<Node> uop();
   std::unique_ptr<Node> call(std::string& id);
 public:
-  std::unique_ptr<Node> expr(const std::unordered_set<std::string>& stopValues = {});
+  std::unique_ptr<Node> expr(const std::unordered_set<std::string>& terminators = {});
   std::vector<std::unique_ptr<Node>> parse();
   Parser(const std::string& code): lex(code) { }
 };

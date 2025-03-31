@@ -18,9 +18,10 @@ TEST(prs, bop) {
 
 TEST(prs, var) {
 #define EXPECT_EQ_VAR(input,expected) EXPECT_EQ(string(*Parser(input).parse()[0]),expected);
-  EXPECT_EQ_VAR("a=a+1","Var(a,value=BOp(Name(a),+,Int(1)))");
-  EXPECT_EQ_VAR("a=1","Var(a,value=Int(1))");
-  EXPECT_EQ_VAR("a=x()","Var(a,value=Call(x))");
+  EXPECT_EQ_VAR("a=1", "Var(a,op==,value=Int(1))");
+  EXPECT_EQ_VAR("a=x()", "Var(a,op==,value=Call(x))");
+  EXPECT_EQ_VAR("a=a+1", "Var(a,op==,value=BOp(Name(a),+,Int(1)))");
+  EXPECT_EQ_VAR("a+=a+=a+=a", "Var(a,op=+=,value=BOp(Name(a),+=,BOp(Name(a),+=,Name(a))))");
 }
 
 TEST(prs, ret) {
