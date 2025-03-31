@@ -15,10 +15,11 @@ const std::unordered_set<std::string> ASSIGN_OPS { "=", "+=", "-=" };
 class Parser {
 private:
   Lex lex;
-  inline std::optional<Tok> eat(std::optional<TokType> expected_type = { }, std::optional<std::string> expected_value = { }) { return lex.eat(expected_type, expected_value); };
+  inline std::optional<Tok> eat(std::optional<TokTy> expected_type = { }, std::optional<std::string> expected_value = { }) { return lex.eat(expected_type, expected_value); };
   inline const std::optional<Tok>& peek() const { return lex.peek(); }
   inline bool nextTakesPrec(std::string& op) const { return peek() && PREC.contains(peek()->value) && PREC.at(peek()->value) > PREC.at(op); }
   inline bool nextAssociatesRight() const { return peek() && ASSIGN_OPS.contains(peek()->value); }
+  std::unique_ptr<Node> ret();
   std::unique_ptr<Node> fn();
   std::unique_ptr<Node> id();
   std::unique_ptr<Node> uop();

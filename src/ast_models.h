@@ -17,8 +17,7 @@ struct Fn: Node {
   std::string id;
   std::vector<std::unique_ptr<Node>> args;
   std::vector<std::unique_ptr<Node>> body;
-  Fn(std::string id, std::vector<std::unique_ptr<Node>> args = { },
-    std::vector<std::unique_ptr<Node>> statements = { });
+  Fn(std::string id, std::vector<std::unique_ptr<Node>> args = { }, std::vector<std::unique_ptr<Node>> statements = { });
   bool isEqual(const Node& other) const override;
   operator std::string() const override;
 };
@@ -59,17 +58,22 @@ struct BOp: public Node {
   std::unique_ptr<Node> left;
   std::string op;
   std::unique_ptr<Node> right;
-  BOp(std::unique_ptr<Node> left, std::string op,
-    std::unique_ptr<Node> right = { });
+  BOp(std::unique_ptr<Node> left, std::string op, std::unique_ptr<Node> right = { });
   bool isEqual(const Node& other) const override;
   operator std::string() const override;
 };
 
-struct Call: public Node { 
+struct Call: public Node {
   std::string id;
   Call(std::string& id);
   bool isEqual(const Node& other) const override;
   operator std::string() const override;
 };
 
-}
+struct Ret: Node {
+  std::unique_ptr<Node> retVal;
+  Ret(std::unique_ptr<Node> retVal);
+  bool isEqual(const Node& other) const override;
+  operator std::string() const override;
+};
+};

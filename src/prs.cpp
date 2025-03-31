@@ -11,8 +11,10 @@ vector<unique_ptr<Node>> Parser::parse() {
     while (peek() && !peek()->isNewline()) {
       if (peek()->value == "def") {
         result.push_back(fn());
-      } else if (peek()->type == TokType::id) {
+      } else if (peek()->type == TokTy::id) {
         result.push_back(id());
+      } else if (peek()->value == "return") {
+        result.push_back(ret());
       }
     }
     eat();
@@ -24,19 +26,19 @@ vector<unique_ptr<Node>> Parser::parse() {
 
 unique_ptr<Node> Parser::uop() {
   switch (peek()->type) {
-  case TokType::int_const: return make_unique<IntConst>(stoi(eat()->value));
-  case TokType::punct: {
+  case TokTy::int_const: return make_unique<IntConst>(stoi(eat()->value));
+  case TokTy::punct: {
     eat({ }, "(");
     auto e = expr({")"});
     eat({ }, ")");
     return e;
   }
-  case TokType::id: {
+  case TokTy::id: {
     string id = eat()->value;
     if (peek() && peek()->value == "(") {
-      eat(TokType::punct, "(");
+      eat(TokTy::punct, "(");
       // TODO: args
-      eat(TokType::punct, ")");
+      eat(TokTy::punct, ")");
       return make_unique<Call>(id);
     }
     return make_unique<Name>(id);
@@ -48,7 +50,7 @@ unique_ptr<Node> Parser::uop() {
 unique_ptr<Node> Parser::expr(const unordered_set<string>& stopValues) {
   auto left = uop();
   while (peek() and not peek()->isNewline() and not stopValues.contains(peek()->value)) {
-    string op = eat(TokType::op)->value;
+    string op = eat(TokTy::op)->value;
     auto right = uop();
     if (peek() && !peek()->isNewline() && (nextTakesPrec(op) || nextAssociatesRight())) {
       right = make_unique<BOp>(std::move(right), eat()->value, std::move(expr()));
@@ -73,14 +75,19 @@ unique_ptr<Node> Parser::id() {
 }
 
 unique_ptr<Node> Parser::fn() {
-  auto x = eat();
+  eat(TokTy::punct, "def");
   string id = eat()->value;
-  eat(TokType::punct, "(");
+  eat(TokTy::punct, "(");
   // TODO: args
-  eat(TokType::punct, ")");
-  eat(TokType::punct, ":");
+  eat(TokTy::punct, ")");
+  eat(TokTy::punct, ":");
   auto last = eat();
   auto stmts = parse();
   return make_unique<Fn>(id, vector<unique_ptr<Node>>(), std::move(stmts));
+}
+
+unique_ptr<Node> Parser::ret() { 
+  eat(TokTy::punct, "return");
+  return make_unique<Ret>(expr()); 
 }
 }; // namespace AST

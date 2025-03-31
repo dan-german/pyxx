@@ -2,7 +2,7 @@
 #include <algorithm>
 using namespace std;
 
-const unordered_set<string> PUNCT = { " ", ";", "\n", "def", "(", ")" };
+const unordered_set<string> PUNCT = { " ", ";", "\n", "def", "(", ")", "return" };
 const unordered_set<string> OPS = { "+", "-", "*", "/", "=", "+=", "-=", "*=", "/=" };
 
 Lex::Lex(const string &input): input(input) {
@@ -20,15 +20,15 @@ optional<Tok> Lex::getNextToken() {
       space++;
     }
     string value { };
-    TokType type;
+    TokTy type;
     if (isalpha(input[pos])) {
       while (isalnum(input[pos]))
         value += input[pos++];
-      type = PUNCT.contains(value) ? TokType::punct : TokType::id;
+      type = PUNCT.contains(value) ? TokTy::punct : TokTy::id;
     } else if (isdigit(input[pos])) {
       while (pos < input.size() && isdigit(input[pos]))
         value += input[pos++];
-      type = TokType::int_const;
+      type = TokTy::int_const;
     } else {
       if (pos + 2 < input.size() && OPS.contains(input.substr(pos, 2))) {
         value = input.substr(pos, 2);
@@ -36,7 +36,7 @@ optional<Tok> Lex::getNextToken() {
       } else {
         value = string(1, input[pos++]);
       }
-      type = OPS.contains(value) ? TokType::op : TokType::punct;
+      type = OPS.contains(value) ? TokTy::op : TokTy::punct;
       value = value == "\n" ? "n" : value;
     }
     return Tok(type, value, space);
@@ -44,7 +44,7 @@ optional<Tok> Lex::getNextToken() {
   return { };
 }
 
-optional<Tok> Lex::eat(optional<TokType> expectedType, optional<string> expectedValue) {
+optional<Tok> Lex::eat(optional<TokTy> expectedType, optional<string> expectedValue) {
   currToken = nextTok;
   if (!currToken) return { };
   if (expectedType && currToken->type != *expectedType) {
@@ -63,13 +63,13 @@ void print_tok(const Tok &t, string msg) {
   print("{}{:<{}} {} {}\n", msg, tokToStr(t.type), PADDING, t.value, t.space);
 }
 
-std::string tokToStr(TokType tp) {
+std::string tokToStr(TokTy tp) {
   switch (tp) {
-  case TokType::id: return "ID";
-  case TokType::op: return "OP";
-  case TokType::type: return "TYPE";
-  case TokType::int_const: return "CONST (INT)";
-  case TokType::punct: return "PUNCT";
+  case TokTy::id: return "ID";
+  case TokTy::op: return "OP";
+  case TokTy::type: return "TYPE";
+  case TokTy::int_const: return "CONST (INT)";
+  case TokTy::punct: return "PUNCT";
   default: return "NOT IMPLEMENTED";
   }
 }

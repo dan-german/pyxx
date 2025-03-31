@@ -77,8 +77,7 @@ Var::operator string() const {
   return format("Var({},value={})", id, string(*value));
 }
 
-BOp::BOp(unique_ptr<Node> left, string op,
-  unique_ptr<Node> right)
+BOp::BOp(unique_ptr<Node> left, string op, unique_ptr<Node> right)
   : left(std::move(left)), op(op), right(std::move(right)) {
 }
 
@@ -94,7 +93,7 @@ BOp::operator string() const {
   return format("BOp({},{},{})", string(*left), op, string(*right));
 }
 
-Call::Call(string& id): id(std::move(id)) { 
+Call::Call(string& id): id(std::move(id)) {
 
 }
 
@@ -103,7 +102,18 @@ bool Call::isEqual(const Node& other) const {
   return cast->id == id;
 }
 
-Call::operator string() const { 
+Call::operator string() const {
   return format("Call({})", id);
+}
+
+Ret::Ret(unique_ptr<Node> retVal): retVal(std::move(retVal)) { }
+
+bool Ret::isEqual(const Node& other) const { 
+  auto cast = dynamic_cast<const Ret*>(&other);
+  return cast and cast->retVal == retVal;
+}
+
+Ret::operator std::string() const { 
+  return format("Ret({})", string(*retVal));
 }
 }

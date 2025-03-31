@@ -7,7 +7,7 @@
 
 #define whitespace ' '
 
-enum class TokType: char {
+enum class TokTy: char {
   id,
   op,
   type,
@@ -16,15 +16,15 @@ enum class TokType: char {
   COUNT
 };
 
-std::string tokToStr(TokType tp);
+std::string tokToStr(TokTy tp);
 
 struct Tok {
-  TokType type;
+  TokTy type;
   std::string value;
   int space;
   bool operator==(const Tok &other) const = default;
-  inline bool isNewline() const { return type == TokType::punct && value == "n"; }
-  Tok(TokType type, std::string value, int space): type(type), value(value), space(space) {}
+  inline bool isNewline() const { return type == TokTy::punct && value == "n"; }
+  Tok(TokTy type, std::string value, int space): type(type), value(value), space(space) {}
 };
 
 void print_tok(const Tok &t, std::string msg = "");
@@ -38,7 +38,7 @@ private:
   std::optional<Tok> getNextToken();
 public:
   Lex(const std::string &input);
-  std::optional<Tok> eat(std::optional<TokType> expected_type = { }, std::optional<std::string> expected_value = { });
+  std::optional<Tok> eat(std::optional<TokTy> expected_type = { }, std::optional<std::string> expected_value = { });
   inline const std::optional<Tok> &curr() const { return currToken; }
   inline const std::optional<Tok> &peek() const { return nextTok; }
 };
