@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-namespace AST {
+namespace ast {
 struct Node {
   virtual bool isEqual(const Node& other) const = 0;
   bool operator==(const Node& other) const { return isEqual(other); }
@@ -71,7 +71,7 @@ struct Call: public Node {
 };
 
 struct Ret: Node {
-  std::unique_ptr<Node> retVal;
+  std::unique_ptr<Node> value;
   Ret(std::unique_ptr<Node> retVal);
   bool isEqual(const Node& other) const override;
   operator std::string() const override;

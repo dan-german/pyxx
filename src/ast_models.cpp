@@ -2,7 +2,7 @@
 #include <format>
 using namespace std;
 
-namespace AST {
+namespace ast {
 Fn::Fn(string id, vector<unique_ptr<Node>> args,
   vector<unique_ptr<Node>> statements)
   : id(id), args(std::move(args)), body(std::move(statements)) {
@@ -106,14 +106,14 @@ Call::operator string() const {
   return format("Call({})", id);
 }
 
-Ret::Ret(unique_ptr<Node> retVal): retVal(std::move(retVal)) { }
+Ret::Ret(unique_ptr<Node> retVal): value(std::move(retVal)) { }
 
 bool Ret::isEqual(const Node& other) const {
   auto cast = dynamic_cast<const Ret*>(&other);
-  return cast and cast->retVal == retVal;
+  return cast and cast->value == value;
 }
 
 Ret::operator std::string() const {
-  return format("Ret({})", string(*retVal));
+  return format("Ret({})", string(*value));
 }
 }

@@ -3,7 +3,7 @@
 #include <algorithm>
 using namespace std;
 
-namespace AST {
+namespace ast {
 vector<unique_ptr<Node>> Parser::parse() {
   vector<unique_ptr<Node>> result;
   auto p = peek();

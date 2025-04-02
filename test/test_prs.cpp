@@ -4,7 +4,7 @@
 #include <vector>
 #include <memory>
 using namespace std;
-using namespace AST;
+using namespace ast;
 
 TEST(prs, bop) {
 #define EXPECT_EQ_EXPR(input,expected) EXPECT_EQ(string(*Parser(input).expr()),expected);

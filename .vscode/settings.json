@@ -69,6 +69,7 @@
         "utility": "cpp",
         "__config": "cpp",
         "ranges": "cpp",
-        "shared_mutex": "cpp"
+        "shared_mutex": "cpp",
+        "*.def": "cpp"
     }
 }

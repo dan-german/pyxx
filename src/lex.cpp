@@ -54,7 +54,7 @@ optional<Tok> Lex::eat(optional<TokTy> expectedType, optional<string> expectedVa
     throw runtime_error("Expected token of value: " + *expectedValue + ", got " + currToken->value);
   }
   nextTok = getNextToken();
-  print_tok(*currToken, "eating: ");
+  // print_tok(*currToken, "eating: ");
   return currToken;
 }
 

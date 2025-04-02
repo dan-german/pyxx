@@ -1,5 +1,5 @@
 #include "prs.h"
-using namespace AST;
+using namespace ast;
 
 void print_ast(Node* node) {
     

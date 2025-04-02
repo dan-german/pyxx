@@ -3,7 +3,7 @@
 #include <memory>
 #include "ast_models.h"
 
-namespace AST {
+namespace ast {
 
 const std::unordered_map<std::string, int> PREC = {
   { "+", 0 }, { "-", 0 },
