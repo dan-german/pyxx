@@ -1,19 +1,26 @@
-#include <print>
 #include "prs.h"
-#include "gen.h"
+#include <print>
+#include <string>
 
-using namespace std;
-using namespace ast;
-
-int main() {
-  string code = 
-  "def f():\n"
-  "  a = 1\n"
-  "  b = a*a-3\n"
-  "  return b\n"
-  "def a():\n"
-  "  return f()";
-
-  auto ast = Parser(code).parse();
-  gen::emit(std::move(ast), "shabobr");
+int main() { 
+  std::string code = 
+  "if x== 1 and y ==2:\n" 
+  "  a = 2\n" 
+  "  return a\n" 
+  "else:\n" 
+  "  b = 3\n";
+  "  return b\n";
+  auto res = ast::Parser(code).parse();
+  std::print("{}\n", std::string(*res[0]));
 }
+
+/* 
+If(
+  test=BOp(
+    BOp(Name(x),==,Int(1)),
+    and,
+    BOp(Name(y),==,Int(2))),
+  then=[Var(a,op==,value=Int(2)),Ret(Name(a))],
+  else=[Var(b,op==,value=Int(3))]
+)
+*/

@@ -76,4 +76,13 @@ struct Ret: Node {
   bool isEqual(const Node& other) const override;
   operator std::string() const override;
 };
+
+struct If: Node {
+  std::unique_ptr<Node> test;
+  std::vector<std::unique_ptr<Node>> then;
+  std::vector<std::unique_ptr<Node>> else_;
+  If(std::unique_ptr<Node> test, std::vector<std::unique_ptr<Node>> then, std::vector<std::unique_ptr<Node>> else_);
+  bool isEqual(const Node& other) const override;
+  operator std::string() const override;
+};
 };

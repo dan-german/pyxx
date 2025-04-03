@@ -2,8 +2,8 @@
 #include <algorithm>
 using namespace std;
 
-const unordered_set<string> PUNCT = { " ", ";", "\n", "def", "(", ")", "return" };
-const unordered_set<string> OPS = { "+", "-", "*", "/", "=", "+=", "-=", "*=", "/=" };
+const unordered_set<string> PUNCT = { " ", ";", "\n", "def", "(", ")", "return", "if", "and", "or" };
+const unordered_set<string> OPS = { "+", "-", "*", "/", "=", "+=", "-=", "*=", "/=", "==", "!=" };
 
 Lex::Lex(const string &input): input(input) {
   nextTok = getNextToken();
@@ -54,7 +54,6 @@ optional<Tok> Lex::eat(optional<TokTy> expectedType, optional<string> expectedVa
     throw runtime_error("Expected token of value: " + *expectedValue + ", got " + currToken->value);
   }
   nextTok = getNextToken();
-  // print_tok(*currToken, "eating: ");
   return currToken;
 }
 

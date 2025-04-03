@@ -23,6 +23,7 @@
 #include <print>
 #include <vst.h>
 #include "gen.h"
+#include "utils.h"
 
 using namespace llvm;
 using namespace std;
@@ -30,21 +31,16 @@ using namespace ast;
 
 namespace gen {
 
-template<typename T, typename PtrTy>
-T* dcast(unique_ptr<PtrTy>& p) { return dynamic_cast<T*>(p.get()); }
-
-template<typename T, typename PtrTy>
-T* dcast(PtrTy* p) { return dynamic_cast<T*>(p); }
 
 unordered_map<Node*, llvm::Value*> nodeMap;
 unordered_map<string, llvm::Value*> nameMap;
 llvm::IntegerType* INT32;
 
 llvm::Value* getValueForNode(Node* node) {
-  if (auto num = dcast<IntConst>(node)) return ConstantInt::get(INT32, num->value);
+  if (auto num = dc<IntConst>(node)) return ConstantInt::get(INT32, num->value);
   if (nodeMap.contains(node)) return nodeMap[node];
   llvm::Value* value;
-  if (auto var = dcast<Name>(node)) {
+  if (auto var = dc<Name>(node)) {
     if (nameMap.contains(var->id)) return nameMap[var->id];
   }
   return nullptr;
@@ -52,7 +48,7 @@ llvm::Value* getValueForNode(Node* node) {
 
 void handleBOpStmt(BOp* statement, llvm::IRBuilder<>& builder) {
   vst::postorder(statement, [&](Node* child) {
-    if (BOp* bop = dcast<BOp>(child)) {
+    if (BOp* bop = dc<BOp>(child)) {
       auto left = getValueForNode(bop->left.get());
       auto right = getValueForNode(bop->right.get());
       if (bop->op == "*") {
@@ -72,19 +68,19 @@ void createFunction(Fn* fn, IRBuilder<>& builder, LLVMContext& context, Module& 
   Function* function = Function::Create(functionType, Function::ExternalLinkage, fn->id, module);
   builder.SetInsertPoint(BasicBlock::Create(context, "entry", function));
   for (auto& statement : fn->body) {
-    if (auto var = dcast<Var>(statement)) {
+    if (auto var = dc<Var>(statement)) {
       if (var->op != "=") continue;
       nodeMap[var] = builder.CreateAlloca(INT32);
       nameMap[var->id] = nodeMap[var];
       if (auto num = dynamic_cast<IntConst*>(var)) {
         builder.CreateStore(builder.getInt32(num->value), nodeMap[var]);
-      } else if (auto bopStatement = dcast<BOp>(var->value)) {
+      } else if (auto bopStatement = dc<BOp>(var->value)) {
         handleBOpStmt(bopStatement, builder);
       }
     } else if (auto ret = dynamic_cast<Ret*>(statement.get())) {
       if (auto name = dynamic_cast<Name*>(ret->value.get())) {
         builder.CreateRet(nameMap[name->id]);
-      } else if (auto call = dcast<Call>(ret->value)) {
+      } else if (auto call = dc<Call>(ret->value)) {
         builder.CreateRet(builder.CreateCall(module.getFunction("f")));
       }
     }
