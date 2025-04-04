@@ -1,9 +1,10 @@
 #include "lex.h"
 #include <algorithm>
+#include "utils.h"
 using namespace std;
 
-const unordered_set<string> PUNCT = { " ", ";", "\n", "def", "(", ")", "return", "if", "and", "or" };
-const unordered_set<string> OPS = { "+", "-", "*", "/", "=", "+=", "-=", "*=", "/=", "==", "!=" };
+const u_set<string> PUNCT = { " ", ";", "\n", "def", "(", ")", "return", "if", "and", "or" };
+const u_set<string> OPS = { "+", "-", "*", "/", "=", "+=", "-=", "*=", "/=", "==", "!=" };
 
 Lex::Lex(const string &input): input(input) {
   nextTok = getNextToken();

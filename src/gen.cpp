@@ -30,10 +30,8 @@ using namespace std;
 using namespace ast;
 
 namespace gen {
-
-
-unordered_map<Node*, llvm::Value*> nodeMap;
-unordered_map<string, llvm::Value*> nameMap;
+u_map<Node*, llvm::Value*> nodeMap;
+u_map<string, llvm::Value*> nameMap;
 llvm::IntegerType* INT32;
 
 llvm::Value* getValueForNode(Node* node) {
@@ -46,20 +44,25 @@ llvm::Value* getValueForNode(Node* node) {
   return nullptr;
 }
 
-void handleBOpStmt(BOp* statement, llvm::IRBuilder<>& builder) {
+llvm::Value* handleBOpStmt(BOp* statement, llvm::IRBuilder<>& builder) {
+  llvm::Value* last;
   vst::postorder(statement, [&](Node* child) {
     if (BOp* bop = dc<BOp>(child)) {
-      auto left = getValueForNode(bop->left.get());
-      auto right = getValueForNode(bop->right.get());
+      auto left = builder.CreateLoad(INT32, getValueForNode(bop->left.get()));
+      auto right = builder.CreateLoad(INT32, getValueForNode(bop->right.get()));
       if (bop->op == "*") {
         nodeMap[bop] = builder.CreateMul(left, right);
       } else if (bop->op == "+") {
         nodeMap[bop] = builder.CreateAdd(left, right);
       } else if (bop->op == "-") {
         nodeMap[bop] = builder.CreateSub(left, right);
+      } else if (bop->op == "/") {
+        nodeMap[bop] = builder.CreateSDiv(left, right);
       }
+      last = nodeMap[bop];
     }
   });
+  return last;
 }
 
 void createFunction(Fn* fn, IRBuilder<>& builder, LLVMContext& context, Module& module) {
@@ -67,19 +70,28 @@ void createFunction(Fn* fn, IRBuilder<>& builder, LLVMContext& context, Module& 
   FunctionType* functionType = FunctionType::get(INT32, { }, false);
   Function* function = Function::Create(functionType, Function::ExternalLinkage, fn->id, module);
   builder.SetInsertPoint(BasicBlock::Create(context, "entry", function));
+
+  for (auto& statement : fn->body) {
+    if (auto var = dc<Var>(statement)) {
+      if (var->op != "=" or nameMap.contains(var->id)) continue;
+      nodeMap[var] = builder.CreateAlloca(INT32);
+      nameMap[var->id] = nodeMap[var];
+    }
+  }
+
   for (auto& statement : fn->body) {
     if (auto var = dc<Var>(statement)) {
       if (var->op != "=") continue;
-      nodeMap[var] = builder.CreateAlloca(INT32);
-      nameMap[var->id] = nodeMap[var];
-      if (auto num = dynamic_cast<IntConst*>(var)) {
+      if (auto num = dc<IntConst>(var->value)) {
         builder.CreateStore(builder.getInt32(num->value), nodeMap[var]);
       } else if (auto bopStatement = dc<BOp>(var->value)) {
-        handleBOpStmt(bopStatement, builder);
+        auto res = handleBOpStmt(bopStatement, builder);
+        builder.CreateStore(res, nameMap[var->id]);
       }
-    } else if (auto ret = dynamic_cast<Ret*>(statement.get())) {
-      if (auto name = dynamic_cast<Name*>(ret->value.get())) {
-        builder.CreateRet(nameMap[name->id]);
+    } else if (auto ret = dc<Ret>(statement)) {
+      if (auto name = dc<Name>(ret->value)) {
+        auto load = builder.CreateLoad(INT32, nameMap[name->id]);
+        builder.CreateRet(load);
       } else if (auto call = dc<Call>(ret->value)) {
         builder.CreateRet(builder.CreateCall(module.getFunction("f")));
       }
@@ -97,7 +109,7 @@ void emit(vector<unique_ptr<Node>> ast, string moduleName) {
   Module module(moduleName, context);
 
   for (auto& node : ast) {
-    if (auto fn = dynamic_cast<Fn*>(node.get())) {
+    if (auto fn = dc<Fn>(node)) {
       createFunction(fn, builder, context, module);
     }
   }
@@ -120,7 +132,7 @@ void emit(vector<unique_ptr<Node>> ast, string moduleName) {
 
   llvm::TargetOptions opt;
   auto RM = std::optional<llvm::Reloc::Model>();
-  auto targetMachine = target->createTargetMachine(targetTriple, "generic", "", opt, RM);
+  auto targetMachine = target->createTargetMachine(targetTriple, "generic", "", opt, RM, { }, CodeGenOptLevel::None);
 
   module.setDataLayout(targetMachine->createDataLayout());
 

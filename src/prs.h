@@ -36,15 +36,3 @@ public:
   Parser(const std::string& code): lex(code) { }
 };
 }; // namespace AST
-
-/*
-If(
-  test=BOp(
-    BOp(Name(x),==,Int(1)),
-    and,
-    BOp(Name(y),==,Int(2))
-  ),
-  then=Ret(Name(a)),
-  else=Ret(Name(b))
-)
-*/

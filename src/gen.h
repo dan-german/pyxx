@@ -29,7 +29,7 @@ using namespace ast;
 
 namespace gen {
 llvm::Value* getValueForNode(Node* node);
-void handleBOpStmt(BOp* statement, llvm::IRBuilder<>& builder);
+llvm::Value* handleBOpStmt(BOp* statement, llvm::IRBuilder<>& builder);
 void emit(vector<unique_ptr<ast::Node>> ast, std::string moduleName = "");
 void createFunction(Fn* fn, IRBuilder<>& builder, LLVMContext& context, Module& module);
 };

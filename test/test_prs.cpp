@@ -43,6 +43,10 @@ TEST(prs, ret) {
 TEST(prs, if_) {
   EXPECT_EQ(string(*Parser(
     "if x == 1:\n"
+    "  return a\n"
+  ).parse()[0]), "If(test=BOp(Name(x),==,Int(1)),then=[Ret(Name(a))],else=[])");
+  EXPECT_EQ(string(*Parser(
+    "if x == 1:\n"
     "  a = 2\n"
     "  return a\n"
     "else:\n"

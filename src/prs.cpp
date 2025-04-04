@@ -82,7 +82,7 @@ unique_ptr<Node> Parser::ret() {
   return make_unique<Ret>(expr());
 }
 
-unique_ptr<Node> Parser::expr(const unordered_set<string>& terminators) {
+unique_ptr<Node> Parser::expr(const u_set<string>& terminators) {
   deque<unique_ptr<Node>> nodes;
   nodes.push_back(uop());
   deque<string> ops;

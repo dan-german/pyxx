@@ -4,15 +4,15 @@
 using namespace std;
 
 namespace ast {
-string vecToStr(const vec<up<Node>>& v) {
+string vecToStr(const vec<u_ptr<Node>>& v) {
   string str = "[";
   for (auto& arg : v) str += string(*arg) + ',';
   if (v.size()) str.pop_back();
   return str + "]";
 }
 
-Fn::Fn(string id, vec<up<Node>> args,
-  vec<up<Node>> statements)
+Fn::Fn(string id, vec<u_ptr<Node>> args,
+  vec<u_ptr<Node>> statements)
   : id(id), args(mv(args)), body(mv(statements)) {
 }
 
@@ -64,7 +64,7 @@ UOp::operator string() const {
   return format("");
 }
 
-Var::Var(string id, string op, up<Node> value)
+Var::Var(string id, string op, u_ptr<Node> value)
   : id(id), op(op), value(mv(value)) {
 }
 
@@ -79,7 +79,7 @@ Var::operator string() const {
   return format("Var({},op=({}),value={})", id, op, string(*value));
 }
 
-BOp::BOp(up<Node> left, string op, up<Node> right)
+BOp::BOp(u_ptr<Node> left, string op, u_ptr<Node> right)
   : left(mv(left)), op(op), right(mv(right)) {
 }
 
@@ -108,7 +108,7 @@ Call::operator string() const {
   return format("Call({})", id);
 }
 
-Ret::Ret(up<Node> retVal): value(mv(retVal)) { }
+Ret::Ret(u_ptr<Node> retVal): value(mv(retVal)) { }
 
 bool Ret::isEqual(const Node& other) const {
   auto cast = dc<const Ret>(&other);
@@ -119,7 +119,7 @@ Ret::operator std::string() const {
   return format("Ret({})", string(*value));
 }
 
-If::If(up<Node> test, vec<up<Node>> then, vec<up<Node>> else_): test(mv(test)), then(mv(then)), else_(mv(else_)) { }
+If::If(u_ptr<Node> test, vec<u_ptr<Node>> then, vec<u_ptr<Node>> else_): test(mv(test)), then(mv(then)), else_(mv(else_)) { }
 
 bool If::isEqual(const Node& other) const {
   auto cast = dc<const If>(&other);
