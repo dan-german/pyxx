@@ -2,14 +2,19 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <print>
 
 namespace ast {
+
 struct Node {
+  virtual ~Node() {}
   virtual bool isEqual(const Node& other) const = 0;
   bool operator==(const Node& other) const { return isEqual(other); }
-  virtual ~Node() = default;
   virtual operator std::string() const = 0;
+  void print() const;
 };
+
+std::unique_ptr<Node> fold(std::unique_ptr<Node>&& node);
 
 struct Arg: Node { };
 

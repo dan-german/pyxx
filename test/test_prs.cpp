@@ -25,6 +25,16 @@ TEST(prs, var) {
   EXPECT_EQ_VAR("a+=a+=a+=a", "Var(a,op=(+=),value=BOp(Name(a),+=,BOp(Name(a),+=,Name(a))))");
 }
 
+TEST(prs, fold) {
+#define EXPECT_EQ_FOLD(input,expected) EXPECT_EQ(string(*fold(Parser(input).expr())), expected);
+  EXPECT_EQ_FOLD("4*4", "Int(16)");
+  EXPECT_EQ_FOLD("4+4", "Int(8)");
+  EXPECT_EQ_FOLD("4-4", "Int(0)");
+  EXPECT_EQ_FOLD("4/4", "Int(1)");
+  EXPECT_EQ_FOLD("2+3*a+b", "BOp(BOp(Int(2),+,BOp(Int(3),*,Name(a))),+,Name(b))");
+  EXPECT_EQ_FOLD("2+3*(a+b)", "BOp(Int(2),+,BOp(Int(3),*,BOp(Name(a),+,Name(b))))");
+}
+
 TEST(prs, ret) {
   EXPECT_EQ(string(*Parser(
     "def f():\n"

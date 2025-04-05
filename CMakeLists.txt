@@ -11,7 +11,7 @@ include_directories(${LLVM_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
 
 # Get required LLVM libraries
-llvm_map_components_to_libnames(llvm_libs core support mc native)
+llvm_map_components_to_libnames(llvm_libs core support mc native passes)
 
 file(GLOB LIB_SOURCE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp" "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h")
 

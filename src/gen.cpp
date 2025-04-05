@@ -11,12 +11,17 @@
 #include "llvm/IR/Verifier.h"
 #include "llvm/TargetParser/Host.h"
 #include "llvm/IR/LegacyPassManager.h"
-
+#include "llvm/IR/PassManager.h"
+#include "llvm/Transforms/Utils/Mem2Reg.h"
+#include "llvm/Transforms/Utils.h"
+#include "llvm/Passes/PassBuilder.h"
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Target/TargetMachine.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/MC/TargetRegistry.h"
+#include "llvm/Analysis/LoopAnalysisManager.h"
+#include "llvm/Analysis/CGSCCPassManager.h"
 #include <ranges>
 
 #include "prs.h"
@@ -30,7 +35,7 @@ using namespace std;
 using namespace ast;
 
 namespace gen {
-u_map<Node*, llvm::Value*> nodeMap;
+u_map<const Node*, llvm::Value*> nodeMap;
 u_map<string, llvm::Value*> nameMap;
 llvm::IntegerType* INT32;
 
@@ -44,10 +49,29 @@ llvm::Value* getValueForNode(Node* node) {
   return nullptr;
 }
 
-llvm::Value* handleBOpStmt(BOp* statement, llvm::IRBuilder<>& builder) {
+llvm::Value* ret(const Ret* var, llvm::IRBuilder<>& builder, llvm::Module& module) {
+  if (auto name = dc<Name>(var->value)) {
+    auto load = builder.CreateLoad(INT32, nameMap[name->id]);
+    builder.CreateRet(load);
+  } else if (auto call = dc<Call>(var->value)) {
+    builder.CreateRet(builder.CreateCall(module.getFunction("f")));
+  } else if (auto bop = dc<BOp>(var->value)) {
+    builder.CreateRet(nodeMap[bop]);
+  }
+}
+
+llvm::Value* var(const Var* var, llvm::IRBuilder<>& builder) {
+  if (auto num = dc<const IntConst>(var->value)) {
+    builder.CreateStore(builder.getInt32(num->value), nodeMap[var]);
+  } else if (auto bopStatement = dc<BOp>(var->value)) {
+    builder.CreateStore(bop(bopStatement, builder), nameMap[var->id]);
+  }
+}
+
+llvm::Value* bop(const BOp* statement, llvm::IRBuilder<>& builder) {
   llvm::Value* last;
-  vst::postorder(statement, [&](Node* child) {
-    if (BOp* bop = dc<BOp>(child)) {
+  vst::postorder(statement, [&](const Node* child) {
+    if (const BOp* bop = dc<const BOp>(child)) {
       auto left = builder.CreateLoad(INT32, getValueForNode(bop->left.get()));
       auto right = builder.CreateLoad(INT32, getValueForNode(bop->right.get()));
       if (bop->op == "*") {
@@ -65,6 +89,16 @@ llvm::Value* handleBOpStmt(BOp* statement, llvm::IRBuilder<>& builder) {
   return last;
 }
 
+void emitStmt(const Node* stmt, IRBuilder<>& builder, llvm::Module& module) {
+  if (auto b = dc<const BOp>(stmt)) {
+    bop(b, builder);
+  } else if (auto v = dc<const Var>(stmt)) {
+    var(v, builder);
+  } else if (auto r = dc<const Ret>(stmt)) {
+    ret(r, builder, module);
+  }
+}
+
 void createFunction(Fn* fn, IRBuilder<>& builder, LLVMContext& context, Module& module) {
   INT32 = builder.getInt32Ty();
   FunctionType* functionType = FunctionType::get(INT32, { }, false);
@@ -80,23 +114,39 @@ void createFunction(Fn* fn, IRBuilder<>& builder, LLVMContext& context, Module& 
   }
 
   for (auto& statement : fn->body) {
-    if (auto var = dc<Var>(statement)) {
-      if (var->op != "=") continue;
-      if (auto num = dc<IntConst>(var->value)) {
-        builder.CreateStore(builder.getInt32(num->value), nodeMap[var]);
-      } else if (auto bopStatement = dc<BOp>(var->value)) {
-        auto res = handleBOpStmt(bopStatement, builder);
-        builder.CreateStore(res, nameMap[var->id]);
-      }
-    } else if (auto ret = dc<Ret>(statement)) {
-      if (auto name = dc<Name>(ret->value)) {
-        auto load = builder.CreateLoad(INT32, nameMap[name->id]);
-        builder.CreateRet(load);
-      } else if (auto call = dc<Call>(ret->value)) {
-        builder.CreateRet(builder.CreateCall(module.getFunction("f")));
-      }
-    }
+    vst::postorder(statement.get(), [&](const Node* child) { emitStmt(child, builder, module); });
   }
+}
+
+
+void handlePasses(Module& module) {
+  // Create the analysis managers.
+  // These must be declared in this order so that they are destroyed in the
+  // correct order due to inter-analysis-manager references.
+  LoopAnalysisManager LAM;
+  FunctionAnalysisManager FAM;
+  CGSCCAnalysisManager CGAM;
+  ModuleAnalysisManager MAM;
+
+  // Create the new pass manager builder.
+  // Take a look at the PassBuilder constructor parameters for more
+  // customization, e.g. specifying a TargetMachine or various debugging
+  // options.
+  PassBuilder PB;
+
+  // Register all the basic analyses with the managers.
+  PB.registerModuleAnalyses(MAM);
+  PB.registerCGSCCAnalyses(CGAM);
+  PB.registerFunctionAnalyses(FAM);
+  PB.registerLoopAnalyses(LAM);
+  PB.crossRegisterProxies(LAM, FAM, CGAM, MAM);
+
+  // Create the pass manager.
+  ModulePassManager MPM = PB.buildPerModuleDefaultPipeline(OptimizationLevel::O0);
+  MPM.addPass(createModuleToFunctionPassAdaptor(PromotePass()));
+
+  // Optimize the IR!
+  MPM.run(module, MAM);
 }
 
 void emit(vector<unique_ptr<Node>> ast, string moduleName) {
@@ -114,8 +164,13 @@ void emit(vector<unique_ptr<Node>> ast, string moduleName) {
     }
   }
 
+  // handlePasses(module);
   llvm::outs() << "// LLVM IR:\n";
   module.print(llvm::outs(), nullptr);
+  emitMC(module);
+}
+
+void emitMC(llvm::Module& module) {
   llvm::outs() << "\n// Assembly:\n";
 
   // Generate assembly for the native target
@@ -138,7 +193,6 @@ void emit(vector<unique_ptr<Node>> ast, string moduleName) {
 
   // Configure the pass pipeline for generating assembly
   llvm::legacy::PassManager pass;
-  // auto fileType = llvm::CGFT_AssemblyFile;
 
   // Use stdout instead of a file
   if (targetMachine->addPassesToEmitFile(pass, llvm::outs(), nullptr, CodeGenFileType::AssemblyFile)) {

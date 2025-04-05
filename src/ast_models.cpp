@@ -1,9 +1,37 @@
 #include "ast_models.h"
 #include <format>
 #include "utils.h"
+#include "dbg.h"
 using namespace std;
 
 namespace ast {
+void Node::print() const { dbg::printTree(this); }
+
+u_ptr<Node> fold(u_ptr<Node>&& node) {
+  auto bop = dc<BOp>(node);
+  if (!bop) return mv(node);
+
+  auto left = fold(mv(bop->left));
+  auto right = fold(mv(bop->right));
+
+  if (auto lc = dc<IntConst>(left.get()))
+    if (auto rc = dc<IntConst>(right.get())) {
+      if (bop->op == "*") {
+        return mu<IntConst>(lc->value * rc->value);
+      } else if (bop->op == "+") {
+        return mu<IntConst>(lc->value + rc->value);
+      } else if (bop->op == "-") {
+        return mu<IntConst>(lc->value - rc->value);
+      } else if (bop->op == "/") {
+        return mu<IntConst>(lc->value / rc->value);
+      }
+    }
+
+  bop->left = mv(left);
+  bop->right = mv(right);
+  return mv(node);
+}
+
 string vecToStr(const vec<u_ptr<Node>>& v) {
   string str = "[";
   for (auto& arg : v) str += string(*arg) + ',';

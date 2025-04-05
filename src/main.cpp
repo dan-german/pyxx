@@ -1,26 +1,24 @@
+#include "prs.h"
 #include "gen.h"
 
+using namespace std;
+using namespace ast;
+
 int main() { 
-  std::string code = 
-  "def main(): \n"
-  "  s = 0\n"
-  "  f1 = 1\n"
-  "  s = s + f1\n"
-  "  f2 = 1\n"
-  "  s = s + f2\n"
-  "  f3 = f1 + f2\n"
-  "  s = s + f3\n"
-  "  f4 = f3 + f2\n"
-  "  s = s + f4\n"
-  "  f5 = f4 + f3\n"
-  "  s = s + f5\n"
-  "  return s\n";
+  string code = 
+  "def main():\n"
+  "  a = 2\n"
+  "  b = 3\n"
+  "  return a * b\n";
   // code = 
-  // "def main(): \n"
-  // "  s = 0\n"
-  // "  f1 = 1\n"
-  // "  s = s + f1\n"
-  // "  return s\n";
-  auto res = ast::Parser(code).parse();
-  gen::emit(std::move(res));
+  // "def main():\n"
+  // "  a = 2*3\n"
+  // "  return a\n";
+  auto ast = Parser(code).parse();
+  // for (auto& stmt : ast) {
+  //   stmt = fold(std::move(stmt));
+  //   stmt->print();
+  // }
+  // ast[0]->print();
+  gen::emit(std::move(ast));
 }
