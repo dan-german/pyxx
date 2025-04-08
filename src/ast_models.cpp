@@ -1,5 +1,6 @@
-#include "ast_models.h"
 #include <format>
+#include <cassert>
+#include "ast_models.h"
 #include "utils.h"
 #include "dbg.h"
 using namespace std;
@@ -32,16 +33,17 @@ u_ptr<Node> fold(u_ptr<Node>&& node) {
   return mv(node);
 }
 
-string vecToStr(const vec<u_ptr<Node>>& v) {
-  string str = "[";
-  for (auto& arg : v) str += string(*arg) + ',';
-  if (v.size()) str.pop_back();
-  return str + "]";
+Arg::Arg(string id): id(id) { }
+
+bool Arg::isEqual(const Node& other) const {
+  assert(false);
+  return false;
 }
 
-Fn::Fn(string id, vec<u_ptr<Node>> args,
-  vec<u_ptr<Node>> statements)
-  : id(id), args(mv(args)), body(mv(statements)) {
+Arg::operator string() const { return id; }
+
+Fn::Fn(string id, vec<u_ptr<Arg>> args, vec<u_ptr<Node>> statements): id(id), args(mv(args)), body(mv(statements)) {
+
 }
 
 bool Fn::isEqual(const Node& other) const {
@@ -56,7 +58,7 @@ bool Fn::isEqual(const Node& other) const {
 }
 
 Fn::operator string() const {
-  return format("Fn({},args={},body={})", id, vecToStr(args), vecToStr(body));
+  return format("Fn({},args={},body={})", id, dbg::vecToStr(args), dbg::vecToStr(body));
 }
 
 Name::Name(string value): id(value) { }
@@ -151,10 +153,10 @@ If::If(u_ptr<Node> test, vec<u_ptr<Node>> then, vec<u_ptr<Node>> else_): test(mv
 
 bool If::isEqual(const Node& other) const {
   auto cast = dc<const If>(&other);
-  if (test != cast->test) return false;
+  return test == cast->test;
 }
 
 If::operator std::string() const {
-  return format("If(test={},then={},else={})", string(*test), vecToStr(then), vecToStr(else_));
+  return format("If(test={},then={},else={})", string(*test), dbg::vecToStr(then), dbg::vecToStr(else_));
 }
 }

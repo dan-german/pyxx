@@ -1,12 +1,11 @@
 #include "prs.h"
 #include <print>
 #include <algorithm>
-#include "utils.h"
 using namespace std;
 
 namespace ast {
-vector<unique_ptr<Node>> Parser::parse() {
-  vector<unique_ptr<Node>> result;
+vec<u_ptr<Node>> Parser::parse() {
+  vec<u_ptr<Node>> result;
   auto p = peek();
   size_t indent = peek()->space;
   while (peek() && peek()->space == indent) {
@@ -28,7 +27,7 @@ vector<unique_ptr<Node>> Parser::parse() {
   return result;
 }
 
-unique_ptr<Node> Parser::uop() {
+u_ptr<Node> Parser::uop() {
   auto p = peek();
   switch (peek()->type) {
   case TokTy::int_const: return make_unique<IntConst>(stoi(eat()->value));
@@ -51,13 +50,13 @@ unique_ptr<Node> Parser::uop() {
   }
 }
 
-unique_ptr<Node> Parser::call(string& id) {
+u_ptr<Node> Parser::call(string& id) {
   eat({ }, "(");
   eat({ }, ")");
   return make_unique<Call>(id);
 }
 
-unique_ptr<Node> Parser::id() {
+u_ptr<Node> Parser::id() {
   string id = eat()->value;
   if (peek()->value == "(") {
     return call(id);
@@ -65,25 +64,32 @@ unique_ptr<Node> Parser::id() {
   return make_unique<Var>(id, eat()->value, mv(expr()));
 }
 
-unique_ptr<Node> Parser::fn() {
+u_ptr<Node> Parser::fn() {
   eat(TokTy::punct, "def");
   string id = eat()->value;
   eat(TokTy::punct, "(");
-  // TODO: args
+  vec<u_ptr<Arg>> args;
+  while (peek()->value != ")") {
+    args.push_back(mu<Arg>(eat()->value));
+    if (peek()->value == ",")
+      eat();
+    else
+      break;
+  }
   eat(TokTy::punct, ")");
   eat(TokTy::punct, ":");
   auto last = eat();
   auto stmts = parse();
-  return make_unique<Fn>(id, vector<unique_ptr<Node>>(), mv(stmts));
+  return make_unique<Fn>(id, mv(args), mv(stmts));
 }
 
-unique_ptr<Node> Parser::ret() {
+u_ptr<Node> Parser::ret() {
   eat(TokTy::punct, "return");
   return make_unique<Ret>(expr());
 }
 
-unique_ptr<Node> Parser::expr(const u_set<string>& terminators) {
-  deque<unique_ptr<Node>> nodes;
+u_ptr<Node> Parser::expr(const u_set<string>& terminators) {
+  deque<u_ptr<Node>> nodes;
   nodes.push_back(uop());
   deque<string> ops;
   while (peek() and not (peek()->isNewline() or terminators.contains(peek()->value))) {
@@ -103,14 +109,14 @@ unique_ptr<Node> Parser::expr(const u_set<string>& terminators) {
   return mv(nodes.back());
 }
 
-std::unique_ptr<Node> Parser::if_() {
+u_ptr<Node> Parser::if_() {
   eat({ }, "if");
   auto test = expr({ ":" });
   eat({ }, ":");
   eat(TokTy::punct, "n");
   print("\n");
   auto then = parse();
-  vector<unique_ptr<Node>> else_;
+  vec<u_ptr<Node>> else_;
   if (peek()->value == "else") {
     eat({ }, "else");
     eat({ }, ":");
@@ -120,16 +126,3 @@ std::unique_ptr<Node> Parser::if_() {
   return make_unique<If>(mv(test), mv(then), mv(else_));
 }
 }; // namespace AST
-
-// #include "prs.h"
-// #include <print>
-// #include <string>
-
-// int main() { 
-//   std::string code = 
-//   "if x== 1 and y ==2:\n" 
-//   "  return a\n" 
-//   "else:\n" 
-//   "  return b\n";
-//   auto res = ast::Parser(code).parse();
-// }

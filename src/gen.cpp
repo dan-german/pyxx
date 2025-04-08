@@ -29,6 +29,7 @@
 #include <vst.h>
 #include "gen.h"
 #include "utils.h"
+#include "run_asm.h"
 
 using namespace llvm;
 using namespace std;
@@ -39,14 +40,18 @@ u_map<const Node*, llvm::Value*> nodeMap;
 u_map<string, llvm::Value*> nameMap;
 llvm::IntegerType* INT32;
 
-llvm::Value* getValueForNode(Node* node) {
-  if (auto num = dc<IntConst>(node)) return ConstantInt::get(INT32, num->value);
-  if (nodeMap.contains(node)) return nodeMap[node];
-  llvm::Value* value;
-  if (auto var = dc<Name>(node)) {
-    if (nameMap.contains(var->id)) return nameMap[var->id];
+llvm::Value* getValueForNode(Node* node, IRBuilder<>& builder) {
+  if (const IntConst* num = dc<const IntConst>(node)) {
+    return ConstantInt::get(INT32, num->value);
   }
-  return nullptr;
+  llvm::Value* value = nullptr;
+  if (nodeMap.contains(node)) {
+    value = nodeMap[node];
+  } else if (auto var = dc<Name>(node)) {
+    if (nameMap.contains(var->id))
+      value = nameMap[var->id];
+  }
+  return builder.CreateLoad(INT32, value);
 }
 
 llvm::Value* ret(const Ret* var, llvm::IRBuilder<>& builder, llvm::Module& module) {
@@ -57,14 +62,16 @@ llvm::Value* ret(const Ret* var, llvm::IRBuilder<>& builder, llvm::Module& modul
     builder.CreateRet(builder.CreateCall(module.getFunction("f")));
   } else if (auto bop = dc<BOp>(var->value)) {
     builder.CreateRet(nodeMap[bop]);
+  } else if (auto num = dc<IntConst>(var->value)) {
+    builder.CreateRet(ConstantInt::get(INT32, num->value));
   }
 }
 
 llvm::Value* var(const Var* var, llvm::IRBuilder<>& builder) {
   if (auto num = dc<const IntConst>(var->value)) {
-    builder.CreateStore(builder.getInt32(num->value), nodeMap[var]);
-  } else if (auto bopStatement = dc<BOp>(var->value)) {
-    builder.CreateStore(bop(bopStatement, builder), nameMap[var->id]);
+    builder.CreateStore(builder.getInt32(num->value), nameMap[var->id]);
+  } else if (auto bop = dc<BOp>(var->value)) {
+    builder.CreateStore(nodeMap[bop], nameMap[var->id]);
   }
 }
 
@@ -72,8 +79,8 @@ llvm::Value* bop(const BOp* statement, llvm::IRBuilder<>& builder) {
   llvm::Value* last;
   vst::postorder(statement, [&](const Node* child) {
     if (const BOp* bop = dc<const BOp>(child)) {
-      auto left = builder.CreateLoad(INT32, getValueForNode(bop->left.get()));
-      auto right = builder.CreateLoad(INT32, getValueForNode(bop->right.get()));
+      auto left = getValueForNode(bop->left.get(), builder);
+      auto right = getValueForNode(bop->right.get(), builder);
       if (bop->op == "*") {
         nodeMap[bop] = builder.CreateMul(left, right);
       } else if (bop->op == "+") {
@@ -82,6 +89,8 @@ llvm::Value* bop(const BOp* statement, llvm::IRBuilder<>& builder) {
         nodeMap[bop] = builder.CreateSub(left, right);
       } else if (bop->op == "/") {
         nodeMap[bop] = builder.CreateSDiv(left, right);
+      } else if (bop->op == "==") {
+        nodeMap[bop] = builder.CreateICmpEQ(left, right);
       }
       last = nodeMap[bop];
     }
@@ -89,22 +98,35 @@ llvm::Value* bop(const BOp* statement, llvm::IRBuilder<>& builder) {
   return last;
 }
 
-void emitStmt(const Node* stmt, IRBuilder<>& builder, llvm::Module& module) {
+llvm::Value* emitStmt(const Node* stmt, IRBuilder<>& builder, llvm::Module& module) {
   if (auto b = dc<const BOp>(stmt)) {
-    bop(b, builder);
+    return bop(b, builder);
   } else if (auto v = dc<const Var>(stmt)) {
-    var(v, builder);
+    return var(v, builder);
   } else if (auto r = dc<const Ret>(stmt)) {
-    ret(r, builder, module);
+    return ret(r, builder, module);
   }
 }
 
 void createFunction(Fn* fn, IRBuilder<>& builder, LLVMContext& context, Module& module) {
   INT32 = builder.getInt32Ty();
-  FunctionType* functionType = FunctionType::get(INT32, { }, false);
+  llvm::SmallVector<llvm::Type*> argTypes(fn->args.size(), INT32);
+  FunctionType* functionType = FunctionType::get(INT32, argTypes, false);
   Function* function = Function::Create(functionType, Function::ExternalLinkage, fn->id, module);
   builder.SetInsertPoint(BasicBlock::Create(context, "entry", function));
 
+  // handle args
+  for (int i = 0; i < fn->args.size(); i++) {
+    auto irArg = function->getArg(i);
+    irArg->setName(fn->args[i]->id);
+  }
+  // handle args allocations
+  for (int i = 0; i < fn->args.size(); i++) {
+    nodeMap[fn->args[i].get()] = builder.CreateAlloca(INT32);
+    nameMap[function->getArg(i)->getName().str()] = nodeMap[fn->args[i].get()];
+  }
+
+  // create allocations
   for (auto& statement : fn->body) {
     if (auto var = dc<Var>(statement)) {
       if (var->op != "=" or nameMap.contains(var->id)) continue;
@@ -112,12 +134,43 @@ void createFunction(Fn* fn, IRBuilder<>& builder, LLVMContext& context, Module& 
       nameMap[var->id] = nodeMap[var];
     }
   }
-
-  for (auto& statement : fn->body) {
-    vst::postorder(statement.get(), [&](const Node* child) { emitStmt(child, builder, module); });
+  
+  for (auto& stmt : fn->body) {
+    if (auto i = dc<const If>(stmt)) {
+      if_(i, context, function, builder, module);
+    } else {
+      vst::postorder(stmt.get(), [&](const Node* child) {
+        emitStmt(child, builder, module);
+      });
+    }
   }
 }
 
+void if_(const ast::If* if_, llvm::LLVMContext& context, llvm::Function* function, llvm::IRBuilder<>& builder, llvm::Module& module) {
+  llvm::Value* lastTestOp = nullptr;
+  vst::postorder(if_->test.get(), [&](const Node* child) {
+    lastTestOp = emitStmt(child, builder, module);
+  });
+  llvm::BasicBlock* thenBlock = llvm::BasicBlock::Create(context, "then", function);
+  llvm::BasicBlock* elseBlock = llvm::BasicBlock::Create(context, "else", function);
+  llvm::BasicBlock* mergeBlock = llvm::BasicBlock::Create(context, "endif", function);
+  builder.CreateCondBr(lastTestOp, thenBlock, elseBlock);
+  builder.SetInsertPoint(thenBlock);
+  for (auto& stmt : if_->then) {
+    vst::postorder(stmt.get(), [&](const Node* child) {
+      emitStmt(child, builder, module);
+    });
+  }
+  builder.CreateBr(mergeBlock);
+  builder.SetInsertPoint(elseBlock);
+  for (auto& stmt : if_->else_) {
+    vst::postorder(stmt.get(), [&](const Node* child) {
+      emitStmt(child, builder, module);
+    });
+  }
+  builder.CreateBr(mergeBlock);
+  builder.SetInsertPoint(mergeBlock);
+}
 
 void handlePasses(Module& module) {
   // Create the analysis managers.
@@ -167,10 +220,11 @@ void emit(vector<unique_ptr<Node>> ast, string moduleName) {
   // handlePasses(module);
   llvm::outs() << "// LLVM IR:\n";
   module.print(llvm::outs(), nullptr);
-  emitMC(module);
+  string code = emitMC(module);
+  print("{}\n", code);
 }
 
-void emitMC(llvm::Module& module) {
+string emitMC(llvm::Module& module) {
   llvm::outs() << "\n// Assembly:\n";
 
   // Generate assembly for the native target
@@ -182,7 +236,7 @@ void emitMC(llvm::Module& module) {
 
   if (!target) {
     llvm::errs() << "Error looking up target: " << error << "\n";
-    return;
+    return "";
   }
 
   llvm::TargetOptions opt;
@@ -195,12 +249,16 @@ void emitMC(llvm::Module& module) {
   llvm::legacy::PassManager pass;
 
   // Use stdout instead of a file
-  if (targetMachine->addPassesToEmitFile(pass, llvm::outs(), nullptr, CodeGenFileType::AssemblyFile)) {
+  SmallString<1024> res;
+  // string res;
+  raw_svector_ostream os(res);
+  if (targetMachine->addPassesToEmitFile(pass, os, nullptr, CodeGenFileType::AssemblyFile)) {
     llvm::errs() << "Target machine can't emit a file of this type\n";
-    return;
+    return "";
   }
 
   // Run the pass pipeline
   pass.run(module);
+  return string(res);
 }
-};
+} // namespace gen

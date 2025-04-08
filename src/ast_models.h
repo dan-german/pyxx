@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <print>
+#include "utils.h"
 
 namespace ast {
 
@@ -14,15 +15,20 @@ struct Node {
   void print() const;
 };
 
-std::unique_ptr<Node> fold(std::unique_ptr<Node>&& node);
+u_ptr<Node> fold(u_ptr<Node>&& node);
 
-struct Arg: Node { };
+struct Arg: Node {
+  std::string id;
+  bool isEqual(const Node& other) const override;
+  operator std::string() const override;
+  Arg(std::string id);
+};
 
 struct Fn: Node {
   std::string id;
-  std::vector<std::unique_ptr<Node>> args;
-  std::vector<std::unique_ptr<Node>> body;
-  Fn(std::string id, std::vector<std::unique_ptr<Node>> args = { }, std::vector<std::unique_ptr<Node>> statements = { });
+  vec<u_ptr<Arg>> args;
+  vec<u_ptr<Node>> body;
+  Fn(std::string id, vec<u_ptr<Arg>> args, vec<u_ptr<Node>> statements = { });
   bool isEqual(const Node& other) const override;
   operator std::string() const override;
 };
@@ -53,17 +59,17 @@ struct UOp: public Node {
 struct Var: public Node {
   std::string id;
   std::string op;
-  std::unique_ptr<Node> value;
-  Var(std::string id, std::string op, std::unique_ptr<Node> value = { });
+  u_ptr<Node> value;
+  Var(std::string id, std::string op, u_ptr<Node> value = { });
   bool isEqual(const Node& other) const override;
   operator std::string() const override;
 };
 
 struct BOp: public Node {
-  std::unique_ptr<Node> left;
+  u_ptr<Node> left;
   std::string op;
-  std::unique_ptr<Node> right;
-  BOp(std::unique_ptr<Node> left, std::string op, std::unique_ptr<Node> right = { });
+  u_ptr<Node> right;
+  BOp(u_ptr<Node> left, std::string op, u_ptr<Node> right = { });
   bool isEqual(const Node& other) const override;
   operator std::string() const override;
 };
@@ -76,17 +82,17 @@ struct Call: public Node {
 };
 
 struct Ret: Node {
-  std::unique_ptr<Node> value;
-  Ret(std::unique_ptr<Node> retVal);
+  u_ptr<Node> value;
+  Ret(u_ptr<Node> retVal);
   bool isEqual(const Node& other) const override;
   operator std::string() const override;
 };
 
 struct If: Node {
-  std::unique_ptr<Node> test;
-  std::vector<std::unique_ptr<Node>> then;
-  std::vector<std::unique_ptr<Node>> else_;
-  If(std::unique_ptr<Node> test, std::vector<std::unique_ptr<Node>> then, std::vector<std::unique_ptr<Node>> else_);
+  u_ptr<Node> test;
+  vec<u_ptr<Node>> then;
+  vec<u_ptr<Node>> else_;
+  If(u_ptr<Node> test, vec<u_ptr<Node>> then, vec<u_ptr<Node>> else_);
   bool isEqual(const Node& other) const override;
   operator std::string() const override;
 };

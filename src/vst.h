@@ -1,5 +1,5 @@
 #pragma once
-#include "ast_models.h"
+namespace ast { struct Node; }
 #include <functional>
 
 namespace vst {

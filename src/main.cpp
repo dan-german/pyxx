@@ -9,16 +9,9 @@ int main() {
   "def main():\n"
   "  a = 2\n"
   "  b = 3\n"
-  "  return a * b\n";
-  // code = 
-  // "def main():\n"
-  // "  a = 2*3\n"
-  // "  return a\n";
+  "  dbg()\n"
+  "  return a*b\n";
   auto ast = Parser(code).parse();
-  // for (auto& stmt : ast) {
-  //   stmt = fold(std::move(stmt));
-  //   stmt->print();
-  // }
-  // ast[0]->print();
-  gen::emit(std::move(ast));
+  ast[0]->print();
+  gen::emit(mv(ast));
 }

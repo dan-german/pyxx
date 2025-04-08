@@ -2,6 +2,7 @@
 #include <vector>
 #include <utility>
 #include "utils.h"
+#include "ast_models.h"
 
 using namespace ast;
 using namespace std;
