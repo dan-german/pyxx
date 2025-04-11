@@ -70,6 +70,7 @@
         "__config": "cpp",
         "ranges": "cpp",
         "shared_mutex": "cpp",
-        "*.def": "cpp"
+        "*.def": "cpp",
+        "cassert": "cpp"
     }
 }

@@ -3,7 +3,7 @@
 #include "utils.h"
 using namespace std;
 
-const u_set<string> PUNCT = { " ", ";", "\n", "def", "(", ")", "return", "if", "and", "or" };
+const u_set<string> PUNCT = { " ", ";", "\n", "def", "(", ")", "return", "if", "and", "or", "else" };
 const u_set<string> OPS = { "+", "-", "*", "/", "=", "+=", "-=", "*=", "/=", "==", "!=" };
 
 Lex::Lex(const string &input): input(input) {
@@ -25,7 +25,13 @@ optional<Tok> Lex::getNextToken() {
     if (isalpha(input[pos])) {
       while (isalnum(input[pos]))
         value += input[pos++];
-      type = PUNCT.contains(value) ? TokTy::punct : TokTy::id;
+      
+      type = TokTy::id;
+      if (PUNCT.contains(value)) { 
+        type = TokTy::punct;
+      } else if (value == "True" || value == "False") { 
+        type = TokTy::bool_const;
+      }
     } else if (isdigit(input[pos])) {
       while (pos < input.size() && isdigit(input[pos]))
         value += input[pos++];
@@ -69,6 +75,7 @@ std::string tokToStr(TokTy tp) {
   case TokTy::op: return "OP";
   case TokTy::type: return "TYPE";
   case TokTy::int_const: return "CONST (INT)";
+  case TokTy::bool_const: return "CONST (BOOL)";
   case TokTy::punct: return "PUNCT";
   default: return "NOT IMPLEMENTED";
   }

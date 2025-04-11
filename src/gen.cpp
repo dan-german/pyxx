@@ -29,7 +29,6 @@
 #include <vst.h>
 #include "gen.h"
 #include "utils.h"
-#include "run_asm.h"
 
 using namespace llvm;
 using namespace std;

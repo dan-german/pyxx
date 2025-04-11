@@ -3,6 +3,7 @@
 #include "ast_models.h"
 #include "utils.h"
 #include "dbg.h"
+#include <cassert>
 using namespace std;
 
 namespace ast {
@@ -83,6 +84,16 @@ IntConst::operator string() const {
   return format("Int({})", value);
 }
 
+BoolConst::BoolConst(bool value): value(value) { }
+
+bool BoolConst::isEqual(const Node& other) const {
+  assert(false);
+}
+
+BoolConst::operator string() const {
+  return format("Bool({})", value);
+}
+
 UOp::UOp(char op): op(op) { }
 
 bool UOp::isEqual(const Node& other) const {
@@ -159,4 +170,14 @@ bool If::isEqual(const Node& other) const {
 If::operator std::string() const {
   return format("If(test={},then={},else={})", string(*test), dbg::vecToStr(then), dbg::vecToStr(else_));
 }
+
+CondExpr::CondExpr(u_ptr<Node> trueExpr, u_ptr<Node> falseExpr, u_ptr<Node> test): trueExpr(mv(trueExpr)), falseExpr(mv(falseExpr)), test(mv(test)) { }
+bool CondExpr::isEqual(const Node& other) const {
+  assert(false);
+
 }
+
+CondExpr::operator std::string() const { 
+  return format("CondExpr({} if {} else {})", string(*trueExpr), string(*test), string(*falseExpr)); 
+}
+};

@@ -4,7 +4,9 @@
 #include "ast_models.h"
 #include "utils.h"
 
+
 namespace ast {
+
 class Parser {
 private:
   // https://en.cppreference.com/w/cpp/language/operator_precedence
@@ -31,6 +33,7 @@ private:
   u_ptr<Node> id();
   u_ptr<Node> uop();
   u_ptr<Node> call(std::string& id);
+  u_ptr<Node> condExpr(u_ptr<Node>& tValue);
 public:
   u_ptr<Node> expr(const std::unordered_set<std::string>& terminators = { });
   std::vector<u_ptr<Node>> parse();

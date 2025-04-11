@@ -25,6 +25,12 @@ TEST(prs, var) {
   EXPECT_EQ_VAR("a+=a+=a+=a", "Var(a,op=(+=),value=BOp(Name(a),+=,BOp(Name(a),+=,Name(a))))");
 }
 
+TEST(prs, conditionalExpression) {
+#define EXPECT_EQ_VAR(input,expected) EXPECT_EQ(string(*Parser(input).expr()),expected);
+  EXPECT_EQ_VAR("1 if True else 2", "CondExpr(Int(1) if Bool(true) else Int(2))");
+  EXPECT_EQ_VAR("a+b if a==b else a-b", "CondExpr(BOp(Name(a),+,Name(b)) if BOp(Name(a),==,Name(b)) else BOp(Name(a),-,Name(b)))");
+}
+
 TEST(prs, fold) {
 #define EXPECT_EQ_FOLD(input,expected) EXPECT_EQ(string(*fold(Parser(input).expr())), expected);
   EXPECT_EQ_FOLD("4*4", "Int(16)");

@@ -12,6 +12,7 @@ enum class TokTy: char {
   op,
   type,
   int_const,
+  bool_const,
   punct,
   COUNT
 };

@@ -48,6 +48,14 @@ struct IntConst: public Node {
   bool isEqual(const Node& other) const override;
   operator std::string() const override;
 };
+ 
+struct BoolConst: public Node {
+  bool value;
+  BoolConst(bool value);
+  bool isEqual(const Node& other) const override;
+  operator std::string() const override;
+};
+
 
 struct UOp: public Node {
   char op;
@@ -93,6 +101,15 @@ struct If: Node {
   vec<u_ptr<Node>> then;
   vec<u_ptr<Node>> else_;
   If(u_ptr<Node> test, vec<u_ptr<Node>> then, vec<u_ptr<Node>> else_);
+  bool isEqual(const Node& other) const override;
+  operator std::string() const override;
+};
+
+struct CondExpr: Node {
+  u_ptr<Node> trueExpr;
+  u_ptr<Node> falseExpr;
+  u_ptr<Node> test;
+  CondExpr(u_ptr<Node> trueExpr, u_ptr<Node> falseExpr, u_ptr<Node> test);
   bool isEqual(const Node& other) const override;
   operator std::string() const override;
 };

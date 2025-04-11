@@ -1,15 +1,16 @@
 import subprocess
 
 def dump_asm(code): 
-    args = ["clang", "-x", "c", "-", "-S", "-o", "-", "-Xclang", "-funwind-tables=0"]
+    args = ["clang++", "-x", "c++", "-", "-S", "-o", "-", "-O3","-Xclang", "-funwind-tables=0"]
     subprocess.run(args, input=code, text=True)
 
 def dump_ast(code):
-    args = ["clang", "-Xclang", "-ast-dump", "-fsyntax-only", "-x", "c", "-"]
+    args = ["clang++", "-Xclang", "-ast-dump", "-fsyntax-only", "-x", "c", "-"]
     subprocess.run(args, input=code, text=True)
 
 def dump_llvmir(code): 
-    args = ["clang", "-Xclang", "-emit-llvm", "-S", "-x", "c", "-", "-o", "-", "-O0"]
+    # args = ["clang++", "-Xclang", "-emit-llvm", "-S", "-x", "c", "-", "-o", "-", "-O0"]
+    args = ["clang++", "-Xclang", "-emit-llvm", "-S", "-x", "c++", "-", "-o", "-", "-O1"]
     subprocess.run(args, input=code, text=True)
 
 # dump post preprocessor
@@ -22,9 +23,6 @@ def run(code, output="a.out"):
 
 if __name__ == "__main__":
     code = """
-    int f() {
-        return 2*2;
-    }
     """
 
     dump_llvmir(code)
