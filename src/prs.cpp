@@ -14,30 +14,28 @@ vec<u_ptr<Node>> Parser::parse() {
         result.push_back(fn());
       } else if (peek()->type == TokTy::id) {
         result.push_back(id());
-      } else if (peek()->value == "return") {
-        result.push_back(ret());
+      } else if (peek()->value == "return" && eat(TokTy::punct, "return")) {
+        result.push_back(mu<Ret>(expr()));
       } else if (peek()->value == "if") {
         result.push_back(if_());
       }
     }
     eat();
-    int new_indent = peek()->space;
-    if (indent != new_indent) return result;
+    if (indent != peek()->space) return result;
   }
   return result;
 }
 
 u_ptr<Node> Parser::uop() {
-  auto p = peek();
   switch (peek()->type) {
   case TokTy::int_const: return mu<IntConst>(stoi(eat()->value));
   case TokTy::bool_const: return mu<BoolConst>(eat()->value == "True");
   case TokTy::punct: {
     if (peek()->value == "if") return nullptr;
     eat(TokTy::punct, "(");
-    auto e = expr({ ")" });
+    auto test = expr({ ")" });
     eat(TokTy::punct, ")");
-    return e;
+    return test;
   }
   case TokTy::id: {
     string id = eat()->value;
@@ -52,16 +50,12 @@ u_ptr<Node> Parser::uop() {
   }
 }
 
-u_ptr<Node> Parser::call(string& id) {
-  eat({ }, "(");
-  eat({ }, ")");
-  return mu<Call>(id);
-}
-
 u_ptr<Node> Parser::id() {
   string id = eat()->value;
   if (peek()->value == "(") {
-    return call(id);
+    eat({ }, "(");
+    eat({ }, ")");
+    return mu<Call>(id);
   }
   return mu<Var>(id, eat()->value, mv(expr()));
 }
@@ -75,67 +69,39 @@ u_ptr<Node> Parser::fn() {
     args.push_back(mu<Arg>(eat()->value));
     if (peek()->value == ",")
       eat();
-    else
-      break;
+    else break;
   }
   eat(TokTy::punct, ")");
   eat(TokTy::punct, ":");
-  auto last = eat();
-  auto stmts = parse();
-  return mu<Fn>(id, mv(args), mv(stmts));
+  eat(TokTy::punct, "n");
+  return mu<Fn>(id, mv(args), parse());
 }
 
-u_ptr<Node> Parser::ret() {
-  eat(TokTy::punct, "return");
-  return mu<Ret>(expr());
-}
-
-// 1 if true else 2
-u_ptr<Node> Parser::condExpr(u_ptr<Node>& tValue) {
-  auto p = peek();
+u_ptr<Node> Parser::condExpr(u_ptr<Node> tValue) {
   auto test = expr({ "else" });
-  auto p2 = peek();
   eat(TokTy::punct, "else");
-  auto fValue = expr();
-  return mu<CondExpr>(mv(tValue), mv(fValue), mv(test));
+  return mu<CondExpr>(mv(tValue), expr(), mv(test));
 }
 
 u_ptr<Node> Parser::expr(const u_set<string>& terminators) {
   deque<u_ptr<Node>> nodes;
-  nodes.push_back(uop());
-  if (peek()->value == "if") {
-    eat({ }, "if");
-    auto trueVal = mv(nodes.back()); nodes.pop_back();
-    return condExpr(trueVal);
-  }
   deque<string> ops;
-  auto p = peek();
-  while (peek() and not (peek()->isNewline() or terminators.contains(peek()->value))) {
-    auto nextOp = peek()->value;
-    if (nextOp == "if") {
-      while (not ops.empty()) {
-        auto left = mv(nodes.front()); nodes.pop_front();
-        auto right = mv(nodes.front()); nodes.pop_front();
-        string op = mv(ops.front()); ops.pop_front();
-        nodes.push_front(mu<BOp>(mv(left), op, mv(right)));
-      }
-      eat({ }, "if");
-      auto trueVal = mv(nodes.back()); nodes.pop_back();
-      return condExpr(trueVal);
+  nodes.push_back(uop());
+  if (peek()->value == "if" && eat({ }, "if"))
+    return condExpr(pop(nodes));
+  while (peek() && !(peek()->isNewline() || terminators.contains(peek()->value))) {
+    if (peek()->value == "if" && eat({ }, "if")) {
+      while (ops.size())
+        nodes.push_front(mu<BOp>(pop_front(nodes), pop_front(ops), pop_front(nodes)));
+      return condExpr(pop(nodes));
     }
     ops.push_back(eat()->value);
     nodes.push_back(uop());
-    while (peek() and (nextTakesPrec(ops.back()) or nextAssociatesRight())) {
-      auto left = mv(nodes.back()); nodes.pop_back();
-      nodes.push_back(mu<BOp>(mv(left), eat()->value, uop()));
-    }
+    while (ops.size() && (nextTakesPrec(ops.back()) || nextAssociatesRight()))
+      nodes.push_back(mu<BOp>(pop(nodes), eat()->value, uop()));
   }
-  while (not ops.empty()) {
-    auto left = mv(nodes.front()); nodes.pop_front();
-    auto right = mv(nodes.front()); nodes.pop_front();
-    string op = mv(ops.front()); ops.pop_front();
-    nodes.push_front(mu<BOp>(mv(left), op, mv(right)));
-  }
+  while (!ops.empty())
+    nodes.push_front(mu<BOp>(pop_front(nodes), pop_front(ops), pop_front(nodes)));
   return mv(nodes.back());
 }
 

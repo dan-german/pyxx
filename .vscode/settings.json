@@ -71,6 +71,10 @@
         "ranges": "cpp",
         "shared_mutex": "cpp",
         "*.def": "cpp",
-        "cassert": "cpp"
-    }
+        "cassert": "cpp",
+        "atomic": "cpp",
+        "numeric": "cpp",
+        "filesystem": "cpp"
+    },
+    "C_Cpp.errorSquiggles": "disabled"
 }

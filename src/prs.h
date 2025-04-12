@@ -28,12 +28,10 @@ private:
   inline bool nextTakesPrec(std::string& op) const { return peek() && PREC.contains(peek()->value) && PREC.at(peek()->value) < PREC.at(op); }
   inline bool nextAssociatesRight() const { return peek() && ASSIGN_OPS.contains(peek()->value); }
   u_ptr<Node> if_();
-  u_ptr<Node> ret();
   u_ptr<Node> fn();
   u_ptr<Node> id();
   u_ptr<Node> uop();
-  u_ptr<Node> call(std::string& id);
-  u_ptr<Node> condExpr(u_ptr<Node>& tValue);
+  u_ptr<Node> condExpr(u_ptr<Node> tValue);
 public:
   u_ptr<Node> expr(const std::unordered_set<std::string>& terminators = { });
   std::vector<u_ptr<Node>> parse();

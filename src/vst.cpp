@@ -45,7 +45,7 @@ void postorder(const Node* head, function<void(const Node*)> visitor) {
 void preorder(const Node* head, function<void(const Node*, int)> visitor) {
   vec<pair<const Node*, int>> stack { { head, 0 } };
   while (stack.size()) {
-    auto top = stack.back(); stack.pop_back();
+    auto top = pop(stack);
     visitor(top.first, top.second);
     for (auto child : getChildren(top.first)) stack.push_back({ child, top.second + 1 });
   }
