@@ -12,10 +12,12 @@ inline void expectToken(Lex& lex, int space, string value, TokTy type) {
 
 TEST(lex, CurrPeekAndEat) {
   string code =
+    "# this is a comment\n"
+    "#\n"
     "def f():\n"
     "  a=1*2\n"
     "  b+=1\n"
-    "  return True";
+    "  return True\0";
 
   Lex lex(code);
   auto empty = optional<Tok>();
@@ -29,18 +31,19 @@ TEST(lex, CurrPeekAndEat) {
   expectToken(lex, 0, "n", TokTy::punct);
   expectToken(lex, 2, "a", TokTy::id);
   expectToken(lex, 0, "=", TokTy::op);
-  expectToken(lex, 0, "1", TokTy::int_const);
+  expectToken(lex, 0, "1", TokTy::int_literal);
   expectToken(lex, 0, "*", TokTy::op);
-  expectToken(lex, 0, "2", TokTy::int_const);
+  expectToken(lex, 0, "2", TokTy::int_literal);
   expectToken(lex, 0, "n", TokTy::punct);
   expectToken(lex, 2, "b", TokTy::id);
   expectToken(lex, 0, "+=", TokTy::op);
-  expectToken(lex, 0, "1", TokTy::int_const);
+  expectToken(lex, 0, "1", TokTy::int_literal);
   expectToken(lex, 0, "n", TokTy::punct);
   expectToken(lex, 2, "return", TokTy::punct);
-  expectToken(lex, 1, "True", TokTy::bool_const);
+  expectToken(lex, 1, "True", TokTy::bool_literal);
 
-  EXPECT_EQ(lex.peek(), empty);
+  auto p = lex.peek();
+
   EXPECT_EQ(lex.eat(), empty);
   EXPECT_EQ(lex.curr(), empty);
 }

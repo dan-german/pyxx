@@ -1,0 +1,8 @@
+import os 
+
+config.pyxx_src_root = r'@CMAKE_SOURCE_DIR@'
+config.pyxx_obj_root = r'@CMAKE_BINARY_DIR@'
+
+lit_config.load_config(
+  config, os.path.join(config.pyxx_src_root, "test/lit/lit.cfg.py")
+)

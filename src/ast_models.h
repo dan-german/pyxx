@@ -42,16 +42,16 @@ struct Name: public Node {
   operator std::string() const override;
 };
 
-struct IntConst: public Node {
+struct IntLiteral: public Node {
   int value;
-  IntConst(int value);
+  IntLiteral(int value);
   bool isEqual(const Node& other) const override;
   operator std::string() const override;
 };
  
-struct BoolConst: public Node {
+struct BoolLiteral: public Node {
   bool value;
-  BoolConst(bool value);
+  BoolLiteral(bool value);
   bool isEqual(const Node& other) const override;
   operator std::string() const override;
 };

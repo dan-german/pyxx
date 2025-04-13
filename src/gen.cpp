@@ -40,7 +40,7 @@ u_map<string, llvm::Value*> nameMap;
 llvm::IntegerType* INT32;
 
 llvm::Value* getValueForNode(Node* node, IRBuilder<>& builder) {
-  if (const IntConst* num = dc<const IntConst>(node)) {
+  if (const IntLiteral* num = dc<const IntLiteral>(node)) {
     return ConstantInt::get(INT32, num->value);
   }
   llvm::Value* value = nullptr;
@@ -61,13 +61,13 @@ llvm::Value* ret(const Ret* var, llvm::IRBuilder<>& builder, llvm::Module& modul
     builder.CreateRet(builder.CreateCall(module.getFunction("f")));
   } else if (auto bop = dc<BOp>(var->value)) {
     builder.CreateRet(nodeMap[bop]);
-  } else if (auto num = dc<IntConst>(var->value)) {
+  } else if (auto num = dc<IntLiteral>(var->value)) {
     builder.CreateRet(ConstantInt::get(INT32, num->value));
   }
 }
 
 llvm::Value* var(const Var* var, llvm::IRBuilder<>& builder) {
-  if (auto num = dc<const IntConst>(var->value)) {
+  if (auto num = dc<const IntLiteral>(var->value)) {
     builder.CreateStore(builder.getInt32(num->value), nameMap[var->id]);
   } else if (auto bop = dc<BOp>(var->value)) {
     builder.CreateStore(nodeMap[bop], nameMap[var->id]);
@@ -97,54 +97,6 @@ llvm::Value* bop(const BOp* statement, llvm::IRBuilder<>& builder) {
   return last;
 }
 
-llvm::Value* emitStmt(const Node* stmt, IRBuilder<>& builder, llvm::Module& module) {
-  if (auto b = dc<const BOp>(stmt)) {
-    return bop(b, builder);
-  } else if (auto v = dc<const Var>(stmt)) {
-    return var(v, builder);
-  } else if (auto r = dc<const Ret>(stmt)) {
-    return ret(r, builder, module);
-  }
-}
-
-void createFunction(Fn* fn, IRBuilder<>& builder, LLVMContext& context, Module& module) {
-  INT32 = builder.getInt32Ty();
-  llvm::SmallVector<llvm::Type*> argTypes(fn->args.size(), INT32);
-  FunctionType* functionType = FunctionType::get(INT32, argTypes, false);
-  Function* function = Function::Create(functionType, Function::ExternalLinkage, fn->id, module);
-  builder.SetInsertPoint(BasicBlock::Create(context, "entry", function));
-
-  // handle args
-  for (int i = 0; i < fn->args.size(); i++) {
-    auto irArg = function->getArg(i);
-    irArg->setName(fn->args[i]->id);
-  }
-  // handle args allocations
-  for (int i = 0; i < fn->args.size(); i++) {
-    nodeMap[fn->args[i].get()] = builder.CreateAlloca(INT32);
-    nameMap[function->getArg(i)->getName().str()] = nodeMap[fn->args[i].get()];
-  }
-
-  // create allocations
-  for (auto& statement : fn->body) {
-    if (auto var = dc<Var>(statement)) {
-      if (var->op != "=" or nameMap.contains(var->id)) continue;
-      nodeMap[var] = builder.CreateAlloca(INT32);
-      nameMap[var->id] = nodeMap[var];
-    }
-  }
-  
-  for (auto& stmt : fn->body) {
-    if (auto i = dc<const If>(stmt)) {
-      if_(i, context, function, builder, module);
-    } else {
-      vst::postorder(stmt.get(), [&](const Node* child) {
-        emitStmt(child, builder, module);
-      });
-    }
-  }
-}
-
 void if_(const ast::If* if_, llvm::LLVMContext& context, llvm::Function* function, llvm::IRBuilder<>& builder, llvm::Module& module) {
   llvm::Value* lastTestOp = nullptr;
   vst::postorder(if_->test.get(), [&](const Node* child) {
@@ -169,6 +121,65 @@ void if_(const ast::If* if_, llvm::LLVMContext& context, llvm::Function* functio
   }
   builder.CreateBr(mergeBlock);
   builder.SetInsertPoint(mergeBlock);
+}
+
+llvm::Value* condExpr(const CondExpr* condExpr) {
+}
+
+llvm::Value* emitStmt(const Node* stmt, IRBuilder<>& builder, llvm::Module& module) {
+  if (auto b = dc<const BOp>(stmt)) {
+    return bop(b, builder);
+  } else if (auto v = dc<const Var>(stmt)) {
+    return var(v, builder);
+  } else if (auto r = dc<const Ret>(stmt)) {
+    return ret(r, builder, module);
+  } else if (auto c = dc<const IntLiteral>(stmt)) {
+    return ConstantInt::get(INT32, c->value);
+    // return /Const
+  } else if (auto c = dc<const BoolLiteral>(stmt)) {
+    return ConstantInt::get(INT32, c->value ? 1 : 0);
+  } else if (auto c = dc<const CondExpr>(stmt)) {
+    
+  }
+}
+
+void createFunction(Fn* fn, IRBuilder<>& builder, LLVMContext& context, Module& module) {
+  INT32 = builder.getInt32Ty();
+  llvm::SmallVector<llvm::Type*> argTypes(fn->args.size(), INT32);
+  FunctionType* functionType = FunctionType::get(INT32, argTypes, false);
+  Function* function = Function::Create(functionType, Function::ExternalLinkage, fn->id, module);
+  builder.SetInsertPoint(BasicBlock::Create(context, "entry", function));
+
+  // handle args
+  for (int i = 0; i < fn->args.size(); i++) {
+    auto irArg = function->getArg(i);
+    irArg->setName(fn->args[i]->id);
+  }
+
+  // handle args allocations
+  for (int i = 0; i < fn->args.size(); i++) {
+    nodeMap[fn->args[i].get()] = builder.CreateAlloca(INT32);
+    nameMap[function->getArg(i)->getName().str()] = nodeMap[fn->args[i].get()];
+  }
+
+  // create allocations
+  for (auto& statement : fn->body) {
+    if (auto var = dc<Var>(statement)) {
+      if (var->op != "=" or nameMap.contains(var->id)) continue;
+      nodeMap[var] = builder.CreateAlloca(INT32);
+      nameMap[var->id] = nodeMap[var];
+    }
+  }
+
+  for (auto& stmt : fn->body) {
+    if (auto i = dc<const If>(stmt)) {
+      if_(i, context, function, builder, module);
+    } else {
+      vst::postorder(stmt.get(), [&](const Node* child) {
+        emitStmt(child, builder, module);
+      });
+    }
+  }
 }
 
 void handlePasses(Module& module) {
@@ -201,7 +212,7 @@ void handlePasses(Module& module) {
   MPM.run(module, MAM);
 }
 
-void emit(vector<unique_ptr<Node>> ast, string moduleName) {
+string emit(vector<unique_ptr<Node>> ast, string moduleName) {
   llvm::InitializeNativeTarget();
   llvm::InitializeNativeTargetAsmParser();
   llvm::InitializeNativeTargetAsmPrinter();
@@ -215,12 +226,10 @@ void emit(vector<unique_ptr<Node>> ast, string moduleName) {
       createFunction(fn, builder, context, module);
     }
   }
-
-  // handlePasses(module);
-  llvm::outs() << "// LLVM IR:\n";
-  module.print(llvm::outs(), nullptr);
-  string code = emitMC(module);
-  print("{}\n", code);
+  SmallString<1024> res;
+  raw_svector_ostream os(res);
+  module.print(os, nullptr);
+  return string(res);
 }
 
 string emitMC(llvm::Module& module) {

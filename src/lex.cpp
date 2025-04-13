@@ -6,15 +6,19 @@ using namespace std;
 const u_set<string> PUNCT = { " ", ";", "\n", "def", "(", ")", "return", "if", "and", "or", "else" };
 const u_set<string> OPS = { "+", "-", "*", "/", "=", "+=", "-=", "*=", "/=", "==", "!=" };
 
-Lex::Lex(const string &input): input(input) {
+Lex::Lex(const string& input): input(input) {
   nextTok = getNextToken();
 }
-
+// "# RUN: %pyxx %s -ir 2>&1 | tee o.txt | FileCheck %s\n\n\ndef main():\n    return 1\n\n# CHECK: define i32 @main() {\n# CHECK: entry:\n# CHECK:   ret i32 1\n# CHECK: }"
+// "# RUN: %pyxx %s -ir 2>&1 | tee o.txt | FileCheck %s\n\n\ndef main():\n    return 1\n\n# CHECK: define i32 @main() {\n# CHECK: entry:\n# CHECK:   ret i32 1\n# CHECK: }"
 optional<Tok> Lex::getNextToken() {
   if (pos == input.size())
     return { };
 
   while (pos < input.size()) {
+    // skip comments
+    while (input[pos] == '#') while (pos < input.size() && input[pos] != '\n') pos++;
+
     int space = 0;
     while (input[pos] == ' ') {
       pos++;
@@ -25,17 +29,19 @@ optional<Tok> Lex::getNextToken() {
     if (isalpha(input[pos])) {
       while (isalnum(input[pos]))
         value += input[pos++];
-      
+
       type = TokTy::id;
-      if (PUNCT.contains(value)) { 
+      if (PUNCT.contains(value)) {
         type = TokTy::punct;
-      } else if (value == "True" || value == "False") { 
-        type = TokTy::bool_const;
+      } else if (value == "True" || value == "False") {
+        type = TokTy::bool_literal;
       }
     } else if (isdigit(input[pos])) {
       while (pos < input.size() && isdigit(input[pos]))
         value += input[pos++];
-      type = TokTy::int_const;
+      type = TokTy::int_literal;
+    } else if (input[pos] == '\0') {
+      return Tok(TokTy::punct, "null", space);
     } else {
       if (pos + 2 < input.size() && OPS.contains(input.substr(pos, 2))) {
         value = input.substr(pos, 2);
@@ -64,7 +70,7 @@ optional<Tok> Lex::eat(optional<TokTy> expectedType, optional<string> expectedVa
   return currToken;
 }
 
-void print_tok(const Tok &t, string msg) {
+void print_tok(const Tok& t, string msg) {
   constexpr int PADDING = 15;
   print("{}{:<{}} {} {}\n", msg, tokToStr(t.type), PADDING, t.value, t.space);
 }
@@ -74,8 +80,8 @@ std::string tokToStr(TokTy tp) {
   case TokTy::id: return "ID";
   case TokTy::op: return "OP";
   case TokTy::type: return "TYPE";
-  case TokTy::int_const: return "CONST (INT)";
-  case TokTy::bool_const: return "CONST (BOOL)";
+  case TokTy::int_literal: return "CONST (INT)";
+  case TokTy::bool_literal: return "CONST (BOOL)";
   case TokTy::punct: return "PUNCT";
   default: return "NOT IMPLEMENTED";
   }

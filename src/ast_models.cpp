@@ -16,16 +16,16 @@ u_ptr<Node> fold(u_ptr<Node>&& node) {
   auto left = fold(mv(bop->left));
   auto right = fold(mv(bop->right));
 
-  if (auto lc = dc<IntConst>(left.get()))
-    if (auto rc = dc<IntConst>(right.get())) {
+  if (auto lc = dc<IntLiteral>(left.get()))
+    if (auto rc = dc<IntLiteral>(right.get())) {
       if (bop->op == "*") {
-        return mu<IntConst>(lc->value * rc->value);
+        return mu<IntLiteral>(lc->value * rc->value);
       } else if (bop->op == "+") {
-        return mu<IntConst>(lc->value + rc->value);
+        return mu<IntLiteral>(lc->value + rc->value);
       } else if (bop->op == "-") {
-        return mu<IntConst>(lc->value - rc->value);
+        return mu<IntLiteral>(lc->value - rc->value);
       } else if (bop->op == "/") {
-        return mu<IntConst>(lc->value / rc->value);
+        return mu<IntLiteral>(lc->value / rc->value);
       }
     }
 
@@ -73,24 +73,24 @@ Name::operator string() const {
   return format("Name({})", id);
 }
 
-IntConst::IntConst(int value): value(value) { }
+IntLiteral::IntLiteral(int value): value(value) { }
 
-bool IntConst::isEqual(const Node& other) const {
-  const IntConst* cast = dc<const IntConst>(&other);
+bool IntLiteral::isEqual(const Node& other) const {
+  const IntLiteral* cast = dc<const IntLiteral>(&other);
   return cast && cast->value == value;
 }
 
-IntConst::operator string() const {
+IntLiteral::operator string() const {
   return format("Int({})", value);
 }
 
-BoolConst::BoolConst(bool value): value(value) { }
+BoolLiteral::BoolLiteral(bool value): value(value) { }
 
-bool BoolConst::isEqual(const Node& other) const {
+bool BoolLiteral::isEqual(const Node& other) const {
   assert(false);
 }
 
-BoolConst::operator string() const {
+BoolLiteral::operator string() const {
   return format("Bool({})", value);
 }
 

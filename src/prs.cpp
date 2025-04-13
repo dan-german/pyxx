@@ -9,7 +9,7 @@ vec<u_ptr<Node>> Parser::parse() {
   auto p = peek();
   size_t indent = peek()->space;
   while (peek() && peek()->space == indent) {
-    while (peek() && !peek()->isNewline()) {
+    while (peek() && !peek()->isNewline() && !peek()->isNullChar()) {
       if (peek()->value == "def") {
         result.push_back(fn());
       } else if (peek()->type == TokTy::id) {
@@ -28,8 +28,8 @@ vec<u_ptr<Node>> Parser::parse() {
 
 u_ptr<Node> Parser::uop() {
   switch (peek()->type) {
-  case TokTy::int_const: return mu<IntConst>(stoi(eat()->value));
-  case TokTy::bool_const: return mu<BoolConst>(eat()->value == "True");
+  case TokTy::int_literal: return mu<IntLiteral>(stoi(eat()->value));
+  case TokTy::bool_literal: return mu<BoolLiteral>(eat()->value == "True");
   case TokTy::punct: {
     if (peek()->value == "if") return nullptr;
     eat(TokTy::punct, "(");
