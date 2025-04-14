@@ -1,5 +1,4 @@
 #include "prs.h"
-#include <print>
 #include <algorithm>
 using namespace std;
 
@@ -110,7 +109,6 @@ u_ptr<Node> Parser::if_() {
   auto test = expr({ ":" });
   eat({ }, ":");
   eat(TokTy::punct, "n");
-  print("\n");
   auto then = parse();
   vec<u_ptr<Node>> else_;
   if (peek()->value == "else") {

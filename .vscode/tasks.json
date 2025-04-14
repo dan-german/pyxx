@@ -5,6 +5,11 @@
 			"type": "shell",
 			"label": "build",
 			"command": "sh ${workspaceFolder}/scripts/b"
+		}, 
+		{ 
+			"label": "run lit tests",
+			"type": "shell",
+			"command": "ninja -C ${workspaceFolder}/build/ lit"
 		}
 	]
 }

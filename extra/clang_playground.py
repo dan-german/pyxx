@@ -9,8 +9,7 @@ def dump_ast(code):
     subprocess.run(args, input=code, text=True)
 
 def dump_llvmir(code): 
-    # args = ["clang++", "-Xclang", "-emit-llvm", "-S", "-x", "c", "-", "-o", "-", "-O0"]
-    args = ["clang++", "-Xclang", "-emit-llvm", "-S", "-x", "c++", "-", "-o", "-", "-O1"]
+    args = ["clang++", "-Xclang", "-emit-llvm", "-S", "-x", "c++", "-", "-o", "-", "-O0"]
     subprocess.run(args, input=code, text=True)
 
 # dump post preprocessor
@@ -23,7 +22,26 @@ def run(code, output="a.out"):
 
 if __name__ == "__main__":
     code = """
+    int f() {
+        int a = 1;
+        return a ? 1 : 2;
+    }
     """
+
+# define i32 @_Z1fiii(i32 noundef %0, i32 noundef %1, i32 noundef %2) #0 {
+#   %4 = alloca i32, align 4
+#   %5 = alloca i32, align 4
+#   %6 = alloca i32, align 4
+#   store i32 %0, ptr %4, align 4
+#   store i32 %1, ptr %5, align 4
+#   store i32 %2, ptr %6, align 4
+#   %7 = load i32, ptr %4, align 4
+#   %8 = load i32, ptr %5, align 4
+#   %9 = add nsw i32 %7, %8
+#   %10 = load i32, ptr %6, align 4
+#   %11 = add nsw i32 %9, %10
+#   ret i32 %11
+# }
 
     dump_llvmir(code)
     dump_asm(code)

@@ -1,8 +1,8 @@
 #pragma once
 #include <memory>
-// #include <vector>
 #include <unordered_set>
 #include <unordered_map>
+#include <print>
 
 template <typename T> using vec = std::vector<T>;
 template <typename T> using u_set = std::unordered_set<T>;
@@ -25,4 +25,16 @@ template <typename Container> typename Container::value_type pop_front(Container
   typename Container::value_type top = std::move(container.front());
   container.pop_front();
   return top;
+}
+
+extern bool DBG;
+template<typename T, typename ...Args>
+void DEBUG(T first, Args ...other) {
+  if (!DBG) return;
+  std::print("{} ", first);
+  if constexpr (sizeof...(other) > 0) {
+    DEBUG(other...);
+  } else {
+    std::print("\n");
+  }
 }

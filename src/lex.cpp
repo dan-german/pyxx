@@ -9,16 +9,20 @@ const u_set<string> OPS = { "+", "-", "*", "/", "=", "+=", "-=", "*=", "/=", "==
 Lex::Lex(const string& input): input(input) {
   nextTok = getNextToken();
 }
-// "# RUN: %pyxx %s -ir 2>&1 | tee o.txt | FileCheck %s\n\n\ndef main():\n    return 1\n\n# CHECK: define i32 @main() {\n# CHECK: entry:\n# CHECK:   ret i32 1\n# CHECK: }"
-// "# RUN: %pyxx %s -ir 2>&1 | tee o.txt | FileCheck %s\n\n\ndef main():\n    return 1\n\n# CHECK: define i32 @main() {\n# CHECK: entry:\n# CHECK:   ret i32 1\n# CHECK: }"
+
 optional<Tok> Lex::getNextToken() {
   if (pos == input.size())
     return { };
 
   while (pos < input.size()) {
     // skip comments
-    while (input[pos] == '#') while (pos < input.size() && input[pos] != '\n') pos++;
+    while (input[pos] == '#') {
+      while (pos < input.size() && input[pos] != '\n') 
+        pos++;
+      pos++;
+    }
 
+    char c = input[pos];
     int space = 0;
     while (input[pos] == ' ') {
       pos++;
