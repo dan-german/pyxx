@@ -4,9 +4,7 @@
 #include "ast_models.h"
 #include "utils.h"
 
-
 namespace ast {
-
 class Parser {
 private:
   // https://en.cppreference.com/w/cpp/language/operator_precedence

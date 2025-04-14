@@ -19,10 +19,11 @@ void handle(int argc, char* argv[]) {
 
 int test() {
   string code = 
-  "def b(x,y):\n"
-  "  a = x == y\n"
-  "  return 1 if a else 2";
+  "def b():\n"
+  "  return 2 if False else 3";
+
   auto ast = ast::Parser(code).parse();
+  // ast[0]->print();
   auto res = gen::emit(mv(ast));
   print("{}\n", res);
 }

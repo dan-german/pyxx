@@ -230,7 +230,7 @@ string emit(vector<unique_ptr<Node>> ast, string moduleName) {
       createFunction(fn, builder, context, module);
     }
   }
-  handlePasses(module);
+  // handlePasses(module);
   SmallString<1024> res;
   raw_svector_ostream os(res);
   module.print(os, nullptr);
